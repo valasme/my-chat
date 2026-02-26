@@ -1,0 +1,1 @@
+<img src="{{ asset('logo.png') }}" alt="myChat logo" {{ $attributes->merge(['class' => 'size-5 fill-current invert-0 dark:invert']) }}>
