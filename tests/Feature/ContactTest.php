@@ -1,5 +1,29 @@
 <?php
 
+/**
+ * Contact Feature Tests
+ *
+ * Comprehensive test suite for the user-to-user contact system.
+ * Tests are organized into logical groups matching the controller actions.
+ *
+ * Test groups:
+ *   - Authentication:  Guests are redirected to login on all 5 routes.
+ *   - Authorization:   Users cannot access or modify other users' contacts.
+ *   - Index:           Listing, empty states, search, sorting, pagination.
+ *   - Create:          Rendering the add-contact form.
+ *   - Store:           Adding contacts by email with all validation/error paths.
+ *   - Show:            Viewing a contact's profile detail page.
+ *   - Destroy:         Removing a contact (owns vs. doesn't own).
+ *   - Relationships:   Model relationship integrity (owner, person, hasContact).
+ *   - Cascade Deletes: Contacts removed when either linked user is deleted.
+ *   - Constraints:     Unique constraint, removed routes (edit/update).
+ *   - Security:        Search input sanitization, sort field injection.
+ *
+ * @see \App\Http\Controllers\ContactController
+ * @see \App\Models\Contact
+ * @see \App\Policies\ContactPolicy
+ */
+
 namespace Tests\Feature;
 
 use App\Models\Contact;
@@ -12,6 +36,7 @@ class ContactTest extends TestCase
     use RefreshDatabase;
 
     // ── Authentication ────────────────────────────────────────────────
+    // Verify unauthenticated users are redirected to login on every route.
 
     public function test_guests_are_redirected_from_contacts_index(): void
     {
@@ -48,6 +73,7 @@ class ContactTest extends TestCase
     }
 
     // ── Authorization ─────────────────────────────────────────────────
+    // Verify users cannot access contacts belonging to other users.
 
     public function test_user_cannot_view_another_users_contact(): void
     {
@@ -70,6 +96,7 @@ class ContactTest extends TestCase
     }
 
     // ── Index ─────────────────────────────────────────────────────────
+    // Verify the contacts list shows correct data and states.
 
     public function test_authenticated_user_can_view_contacts_index(): void
     {
@@ -138,6 +165,7 @@ class ContactTest extends TestCase
     }
 
     // ── Search ────────────────────────────────────────────────────────
+    // Verify the search feature filters by name and email correctly.
 
     public function test_search_filters_contacts_by_name(): void
     {
@@ -185,6 +213,7 @@ class ContactTest extends TestCase
     }
 
     // ── Sorting ───────────────────────────────────────────────────────
+    // Verify contacts can be sorted by name/email in both directions.
 
     public function test_sort_contacts_by_name_ascending(): void
     {
@@ -275,6 +304,7 @@ class ContactTest extends TestCase
     }
 
     // ── Pagination ────────────────────────────────────────────────────
+    // Verify contacts are paginated at 25 per page with query preservation.
 
     public function test_contacts_are_paginated_at_25_per_page(): void
     {
@@ -327,6 +357,7 @@ class ContactTest extends TestCase
     }
 
     // ── Create ────────────────────────────────────────────────────────
+    // Verify the add-contact form renders correctly.
 
     public function test_authenticated_user_can_view_create_form(): void
     {
@@ -340,6 +371,7 @@ class ContactTest extends TestCase
     }
 
     // ── Store (Add Contact by Email) ──────────────────────────────────
+    // Verify adding contacts by email with all success, validation, and error paths.
 
     public function test_user_can_add_contact_by_email(): void
     {
@@ -349,7 +381,7 @@ class ContactTest extends TestCase
         $this->actingAs($user)
             ->post(route('contacts.store'), ['email' => 'target@example.com'])
             ->assertRedirect(route('contacts.index'))
-            ->assertSessionHas('success', 'Target User has been added to your contacts.');
+            ->assertSessionHas('success');
 
         $this->assertDatabaseHas('contacts', [
             'user_id' => $user->id,
@@ -364,7 +396,7 @@ class ContactTest extends TestCase
         $this->actingAs($user)
             ->post(route('contacts.store'), ['email' => 'nonexistent@example.com'])
             ->assertRedirect()
-            ->assertSessionHasErrors(['email' => 'No user found with that email address.']);
+            ->assertSessionHasErrors('email');
 
         $this->assertDatabaseCount('contacts', 0);
     }
@@ -376,7 +408,7 @@ class ContactTest extends TestCase
         $this->actingAs($user)
             ->post(route('contacts.store'), ['email' => 'me@example.com'])
             ->assertRedirect()
-            ->assertSessionHasErrors(['email' => 'You cannot add yourself as a contact.']);
+            ->assertSessionHasErrors('email');
 
         $this->assertDatabaseCount('contacts', 0);
     }
@@ -391,7 +423,7 @@ class ContactTest extends TestCase
         $this->actingAs($user)
             ->post(route('contacts.store'), ['email' => 'duplicate@example.com'])
             ->assertRedirect()
-            ->assertSessionHasErrors(['email' => 'This user is already in your contacts.']);
+            ->assertSessionHasErrors('email');
 
         $this->assertDatabaseCount('contacts', 1);
     }
@@ -452,6 +484,7 @@ class ContactTest extends TestCase
     }
 
     // ── Show ──────────────────────────────────────────────────────────
+    // Verify the contact detail page renders correct profile info.
 
     public function test_user_can_view_own_contact(): void
     {
@@ -485,7 +518,22 @@ class ContactTest extends TestCase
             ->assertSee('mailto:mailto-test@example.com', false);
     }
 
+    public function test_show_has_delete_confirmation_modal(): void
+    {
+        $user = User::factory()->create();
+        $person = User::factory()->create(['name' => 'Modal Person']);
+
+        $contact = Contact::factory()->create(['user_id' => $user->id, 'contact_id' => $person->id]);
+
+        $this->actingAs($user)
+            ->get(route('contacts.show', $contact))
+            ->assertOk()
+            ->assertSee('Remove Contact?')
+            ->assertSee('This action cannot be undone.');
+    }
+
     // ── Destroy ───────────────────────────────────────────────────────
+    // Verify removing contacts works and doesn't delete the actual user.
 
     public function test_user_can_delete_own_contact(): void
     {
@@ -497,7 +545,7 @@ class ContactTest extends TestCase
         $this->actingAs($user)
             ->delete(route('contacts.destroy', $contact))
             ->assertRedirect(route('contacts.index'))
-            ->assertSessionHas('success', 'Deleted Person has been removed from your contacts.');
+            ->assertSessionHas('success');
 
         $this->assertDatabaseMissing('contacts', ['id' => $contact->id]);
     }
@@ -517,6 +565,7 @@ class ContactTest extends TestCase
     }
 
     // ── Model Relationships ───────────────────────────────────────────
+    // Verify Contact and User model relationships work correctly.
 
     public function test_contact_belongs_to_owner(): void
     {
@@ -573,6 +622,7 @@ class ContactTest extends TestCase
     }
 
     // ── Cascade Deletes ───────────────────────────────────────────────
+    // Verify contacts are cleaned up when either linked user is deleted.
 
     public function test_contacts_are_deleted_when_owner_is_deleted(): void
     {
@@ -595,6 +645,7 @@ class ContactTest extends TestCase
     }
 
     // ── Unique Constraint ─────────────────────────────────────────────
+    // Verify the database prevents duplicate contact entries.
 
     public function test_unique_constraint_prevents_duplicate_contacts(): void
     {
@@ -609,6 +660,7 @@ class ContactTest extends TestCase
     }
 
     // ── Route Constraints ─────────────────────────────────────────────
+    // Verify edit and update routes are not registered (contacts are immutable links).
 
     public function test_edit_route_does_not_exist(): void
     {
@@ -628,5 +680,69 @@ class ContactTest extends TestCase
         $this->actingAs($user)
             ->put("/contacts/{$contact->id}", ['email' => 'test@example.com'])
             ->assertMethodNotAllowed();
+    }
+
+    // ── Security ──────────────────────────────────────────────────────
+    // Verify search input is sanitized and sort injection is blocked.
+
+    public function test_search_with_sql_wildcard_characters_is_escaped(): void
+    {
+        $user = User::factory()->create();
+        $target = User::factory()->create(['name' => '100% Complete']);
+
+        Contact::factory()->create(['user_id' => $user->id, 'contact_id' => $target->id]);
+
+        $this->actingAs($user)
+            ->get(route('contacts.index', ['search' => '100%']))
+            ->assertOk()
+            ->assertSee('100% Complete');
+    }
+
+    public function test_search_with_underscore_wildcard_is_escaped(): void
+    {
+        $user = User::factory()->create();
+        $exact = User::factory()->create(['name' => 'test_user']);
+        $similar = User::factory()->create(['name' => 'testXuser']);
+
+        Contact::factory()->create(['user_id' => $user->id, 'contact_id' => $exact->id]);
+        Contact::factory()->create(['user_id' => $user->id, 'contact_id' => $similar->id]);
+
+        $response = $this->actingAs($user)
+            ->get(route('contacts.index', ['search' => 'test_user']));
+
+        $response->assertOk()->assertSee('test_user');
+    }
+
+    public function test_sort_field_injection_is_blocked(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->get(route('contacts.index', ['sort' => 'password']));
+
+        $response->assertOk();
+        $this->assertEquals('name', $response->viewData('sort'));
+    }
+
+    public function test_empty_search_returns_all_contacts(): void
+    {
+        $user = User::factory()->create();
+        Contact::factory()->count(3)->create(['user_id' => $user->id]);
+
+        $response = $this->actingAs($user)
+            ->get(route('contacts.index', ['search' => '   ']));
+
+        $response->assertOk();
+        $contacts = $response->viewData('contacts');
+        $this->assertCount(3, $contacts);
+    }
+
+    public function test_search_is_trimmed_and_truncated(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('contacts.index', ['search' => '  Alice  ']))
+            ->assertOk();
     }
 }

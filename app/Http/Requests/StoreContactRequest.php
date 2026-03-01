@@ -1,5 +1,18 @@
 <?php
 
+/**
+ * Store Contact Form Request
+ *
+ * Validates the incoming request when a user adds a new contact.
+ * Only an email address is required — the controller handles all
+ * business logic (user lookup, self-add prevention, duplicates).
+ *
+ * Validation rules:
+ *   - email: required, valid format, max 255 chars.
+ *
+ * @see \App\Http\Controllers\ContactController::store()
+ */
+
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
@@ -8,6 +21,9 @@ class StoreContactRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
+     *
+     * Authorization is handled by ContactPolicy via Gate::authorize()
+     * in the controller, so this always returns true.
      */
     public function authorize(): bool
     {
@@ -27,7 +43,7 @@ class StoreContactRequest extends FormRequest
     }
 
     /**
-     * Get custom error messages for validation rules.
+     * Get custom user-friendly error messages for validation rules.
      *
      * @return array<string, string>
      */

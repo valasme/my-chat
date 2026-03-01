@@ -1,5 +1,33 @@
 <?php
 
+/**
+ * User Model
+ *
+ * Core authentication model for the application. Extends Laravel's
+ * Authenticatable base and integrates Fortify two-factor authentication.
+ *
+ * Contact relationships:
+ * - contacts()      → HasMany Contact records owned by this user.
+ * - contactUsers()  → BelongsToMany through the contacts pivot table.
+ * - hasContact()    → Quick boolean check for duplicate prevention.
+ *
+ * @property int $id
+ * @property string $name
+ * @property string $email
+ * @property \Illuminate\Support\Carbon|null $email_verified_at
+ * @property string $password
+ * @property string|null $two_factor_secret
+ * @property string|null $two_factor_recovery_codes
+ * @property \Illuminate\Support\Carbon|null $two_factor_confirmed_at
+ * @property string|null $remember_token
+ * @property \Illuminate\Support\Carbon $created_at
+ * @property \Illuminate\Support\Carbon $updated_at
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Contact> $contacts
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, User> $contactUsers
+ *
+ * @see \Database\Factories\UserFactory
+ */
+
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -54,6 +82,9 @@ class User extends Authenticatable
 
     /**
      * Get the contact entries owned by this user.
+     *
+     * Each Contact record links this user to another user they have
+     * added. Use with('person') to eager-load the contact's profile.
      */
     public function contacts(): HasMany
     {
@@ -61,7 +92,10 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the users this user has added as contacts.
+     * Get the users this user has added as contacts (through pivot).
+     *
+     * This is a convenience relationship that skips the Contact model
+     * and returns User models directly via the contacts pivot table.
      */
     public function contactUsers(): BelongsToMany
     {
@@ -70,7 +104,10 @@ class User extends Authenticatable
     }
 
     /**
-     * Determine if the given user is already a contact.
+     * Determine if the given user is already in this user's contacts.
+     *
+     * Used by ContactController@store to prevent duplicate entries
+     * before the unique constraint is hit at the database level.
      */
     public function hasContact(User $user): bool
     {
@@ -78,7 +115,9 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the user's initials.
+     * Get the user's initials (first letter of first two words).
+     *
+     * Used in avatar components when no profile image is available.
      */
     public function initials(): string
     {
