@@ -41,12 +41,32 @@ myChat is a simple one-on-one chat application that focuses on
 secure, end-to-end encrypted messaging between individuals. It is
 built as a learning project and currently lacks polish or stability.
 
+
 ## Features
 
 - Basic one-on-one chat conversations.
+- User-to-user contacts system (add/search/remove contacts by email, see details below)
 - Placeholder for end-to-end encryption (not yet implemented).
 - Authentication powered by Laravel Fortify.
 - Responsive UI using Livewire, Flux UI, and Tailwind CSS.
+
+## Contacts System
+
+The contacts system lets users add other users as contacts, similar to a friends list. You can search for users by email, add them to your contacts, view their profile, and remove them if needed. Contacts are displayed in a searchable, sortable, and paginated list. Only authenticated users can manage contacts, and you can only view or remove your own contacts.
+
+**Key features:**
+- Add contacts by searching for a user's email address
+- Prevents adding yourself or duplicate contacts
+- Contacts list supports search (by name/email), sorting (name/email, asc/desc), and pagination (25 per page)
+- View contact details (profile, email, when added)
+- Remove contacts with confirmation
+- Cascade deletes: contacts are removed if either user is deleted
+- Authorization: only the contact owner can view or remove a contact
+
+**Usage:**
+- Go to Contacts in the app to view, add, or remove contacts.
+- All actions are protected by authorization policies.
+
 
 ## Tech Stack
 
