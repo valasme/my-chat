@@ -4,6 +4,8 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
@@ -51,7 +53,32 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the user's initials
+     * Get the contact entries owned by this user.
+     */
+    public function contacts(): HasMany
+    {
+        return $this->hasMany(Contact::class, 'user_id');
+    }
+
+    /**
+     * Get the users this user has added as contacts.
+     */
+    public function contactUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'contacts', 'user_id', 'contact_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * Determine if the given user is already a contact.
+     */
+    public function hasContact(User $user): bool
+    {
+        return $this->contacts()->where('contact_id', $user->id)->exists();
+    }
+
+    /**
+     * Get the user's initials.
      */
     public function initials(): string
     {
