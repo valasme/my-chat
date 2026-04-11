@@ -1,0 +1,20 @@
+{
+    "agents": [
+        "copilot",
+        "amp",
+        "claude_code",
+        "codex",
+        "cursor",
+        "gemini",
+        "junie",
+        "opencode"
+    ],
+    "guidelines": true,
+    "skills": [
+        "fortify-development",
+        "laravel-best-practices",
+        "fluxui-development",
+        "livewire-development",
+        "tailwindcss-development"
+    ]
+}
