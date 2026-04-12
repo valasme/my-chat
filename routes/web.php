@@ -7,11 +7,16 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\IgnoreController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\TrashController;
+use App\Http\Controllers\UserTimezoneController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
 
 Route::middleware(['auth'])->group(function () {
+    Route::post('user/timezone', [UserTimezoneController::class, 'update'])
+        ->middleware('throttle:6,1')
+        ->name('user.timezone');
+
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     Route::middleware('throttle:chat-read')->group(function () {

@@ -105,5 +105,33 @@
         @endpersist
 
         @fluxScripts
+
+        @auth
+        <script>
+            (function() {
+                var storedTz = @json(auth()->user()->timezone);
+                var browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+                // Only sync if browser timezone differs and we haven't synced recently
+                var lastSync = sessionStorage.getItem('tz_synced');
+                if (browserTz && browserTz !== storedTz && lastSync !== browserTz) {
+                    fetch('{{ route('user.timezone') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ timezone: browserTz })
+                    }).then(function(response) {
+                        if (response.ok) {
+                            sessionStorage.setItem('tz_synced', browserTz);
+                            // Only reload on first-time setup to show correct times
+                            if (!storedTz) window.location.reload();
+                        }
+                    }).catch(function() {});
+                }
+            })();
+        </script>
+        @endauth
     </body>
 </html>
