@@ -86,4 +86,57 @@ class ProfileUpdateTest extends TestCase
 
         $this->assertNotNull($user->fresh());
     }
+
+    public function test_name_is_required(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        Livewire::test('pages::settings.profile')
+            ->set('name', '')
+            ->set('email', 'test@example.com')
+            ->call('updateProfileInformation')
+            ->assertHasErrors(['name']);
+    }
+
+    public function test_email_is_required(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        Livewire::test('pages::settings.profile')
+            ->set('name', 'Test User')
+            ->set('email', '')
+            ->call('updateProfileInformation')
+            ->assertHasErrors(['email']);
+    }
+
+    public function test_email_must_be_valid_format(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        Livewire::test('pages::settings.profile')
+            ->set('name', 'Test User')
+            ->set('email', 'not-an-email')
+            ->call('updateProfileInformation')
+            ->assertHasErrors(['email']);
+    }
+
+    public function test_email_must_be_unique(): void
+    {
+        $existingUser = User::factory()->create(['email' => 'taken@example.com']);
+
+        $this->actingAs(User::factory()->create());
+
+        Livewire::test('pages::settings.profile')
+            ->set('name', 'Test User')
+            ->set('email', 'taken@example.com')
+            ->call('updateProfileInformation')
+            ->assertHasErrors(['email']);
+    }
+
+    public function test_guest_cannot_access_profile_page(): void
+    {
+        $response = $this->get(route('profile.edit'));
+
+        $response->assertRedirect(route('login'));
+    }
 }

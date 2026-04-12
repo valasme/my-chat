@@ -119,4 +119,28 @@ class SecurityTest extends TestCase
 
         $response->assertHasErrors(['current_password']);
     }
+
+    public function test_new_password_must_be_confirmed(): void
+    {
+        $user = User::factory()->create([
+            'password' => Hash::make('password'),
+        ]);
+
+        $this->actingAs($user);
+
+        $response = Livewire::test('pages::settings.security')
+            ->set('current_password', 'password')
+            ->set('password', 'new-password')
+            ->set('password_confirmation', 'different-password')
+            ->call('updatePassword');
+
+        $response->assertHasErrors(['password']);
+    }
+
+    public function test_guest_cannot_access_security_page(): void
+    {
+        $response = $this->get(route('security.edit'));
+
+        $response->assertRedirect(route('login'));
+    }
 }

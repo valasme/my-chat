@@ -164,4 +164,204 @@ class IntegrationTest extends TestCase
         $this->assertDatabaseCount('conversations', 0);
         $this->assertDatabaseCount('messages', 0);
     }
+
+    public function test_ignore_then_block_cleans_everything(): void
+    {
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+
+        $contact = Contact::factory()->create([
+            'user_id' => $userA->id,
+            'contact_user_id' => $userB->id,
+            'status' => 'accepted',
+        ]);
+
+        $conversation = Conversation::create([
+            'user_one_id' => min($userA->id, $userB->id),
+            'user_two_id' => max($userA->id, $userB->id),
+        ]);
+
+        Message::create([
+            'conversation_id' => $conversation->id,
+            'sender_id' => $userA->id,
+            'body' => 'Hello',
+        ]);
+
+        // Ignore first
+        Ignore::create([
+            'ignorer_id' => $userA->id,
+            'ignored_id' => $userB->id,
+            'expires_at' => now()->addDay(),
+        ]);
+
+        // Then block
+        $this->actingAs($userA)
+            ->post(route('blocks.store'), ['user_id' => $userB->id]);
+
+        $this->assertDatabaseCount('contacts', 0);
+        $this->assertDatabaseCount('conversations', 0);
+        $this->assertDatabaseCount('messages', 0);
+        $this->assertDatabaseCount('ignores', 0);
+        $this->assertDatabaseHas('blocks', [
+            'blocker_id' => $userA->id,
+            'blocked_id' => $userB->id,
+        ]);
+    }
+
+    public function test_trash_then_restore_then_message(): void
+    {
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+
+        // Create accepted contact
+        $contact = Contact::factory()->create([
+            'user_id' => $userA->id,
+            'contact_user_id' => $userB->id,
+            'status' => 'accepted',
+        ]);
+
+        $conversation = Conversation::create([
+            'user_one_id' => min($userA->id, $userB->id),
+            'user_two_id' => max($userA->id, $userB->id),
+        ]);
+
+        // Trash the contact
+        $trash = Trash::create([
+            'user_id' => $userA->id,
+            'contact_id' => $contact->id,
+            'expires_at' => now()->addDays(7),
+        ]);
+
+        // Restore from trash
+        $this->actingAs($userA)
+            ->delete(route('trashes.destroy', $trash));
+
+        $this->assertDatabaseCount('trashes', 0);
+
+        // Send a message
+        $this->actingAs($userA)
+            ->post(route('messages.store', $conversation), ['body' => 'Hello again!']);
+
+        $this->assertDatabaseCount('messages', 1);
+
+        $message = Message::first();
+        $this->assertEquals($conversation->id, $message->conversation_id);
+        $this->assertEquals($userA->id, $message->sender_id);
+        $this->assertEquals('Hello again!', $message->body);
+    }
+
+    public function test_accept_request_then_ignore_then_cancel_ignore_then_message(): void
+    {
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+
+        // Send contact request
+        $this->actingAs($userA)
+            ->post(route('contacts.store'), ['email' => $userB->email]);
+
+        $contact = Contact::first();
+
+        // Accept
+        $this->actingAs($userB)
+            ->put(route('contacts.update', $contact), ['action' => 'accept']);
+
+        $conversation = Conversation::first();
+        $this->assertNotNull($conversation);
+
+        // Ignore
+        $this->actingAs($userA)
+            ->post(route('ignores.store'), [
+                'user_id' => $userB->id,
+                'duration' => '24h',
+            ]);
+
+        $ignore = Ignore::first();
+        $this->assertNotNull($ignore);
+
+        // Cancel ignore
+        $this->actingAs($userA)
+            ->delete(route('ignores.destroy', $ignore));
+
+        $this->assertDatabaseCount('ignores', 0);
+
+        // Send message
+        $this->actingAs($userA)
+            ->post(route('messages.store', $conversation), ['body' => 'Hi after unignore!']);
+
+        $this->assertDatabaseCount('messages', 1);
+
+        $message = Message::first();
+        $this->assertEquals($conversation->id, $message->conversation_id);
+        $this->assertEquals($userA->id, $message->sender_id);
+        $this->assertEquals('Hi after unignore!', $message->body);
+    }
+
+    public function test_user_deletion_cascades_blocks_and_ignores(): void
+    {
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+
+        Block::create([
+            'blocker_id' => $userA->id,
+            'blocked_id' => $userB->id,
+        ]);
+
+        Ignore::create([
+            'ignorer_id' => $userA->id,
+            'ignored_id' => $userB->id,
+            'expires_at' => now()->addDay(),
+        ]);
+
+        $userA->delete();
+
+        $this->assertDatabaseCount('blocks', 0);
+        $this->assertDatabaseCount('ignores', 0);
+    }
+
+    public function test_two_way_messaging_lifecycle(): void
+    {
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+
+        // Create accepted contact and conversation
+        Contact::factory()->create([
+            'user_id' => $userA->id,
+            'contact_user_id' => $userB->id,
+            'status' => 'accepted',
+        ]);
+
+        $conversation = Conversation::create([
+            'user_one_id' => min($userA->id, $userB->id),
+            'user_two_id' => max($userA->id, $userB->id),
+        ]);
+
+        // Exchange messages back and forth
+        $this->actingAs($userA)
+            ->post(route('messages.store', $conversation), ['body' => 'Hey B!']);
+
+        $this->actingAs($userB)
+            ->post(route('messages.store', $conversation), ['body' => 'Hey A!']);
+
+        $this->actingAs($userA)
+            ->post(route('messages.store', $conversation), ['body' => 'How are you?']);
+
+        $this->actingAs($userB)
+            ->post(route('messages.store', $conversation), ['body' => 'Great, thanks!']);
+
+        $this->assertDatabaseCount('messages', 4);
+
+        $messages = Message::orderBy('id')->get();
+
+        $this->assertEquals($userA->id, $messages[0]->sender_id);
+        $this->assertEquals('Hey B!', $messages[0]->body);
+
+        $this->assertEquals($userB->id, $messages[1]->sender_id);
+        $this->assertEquals('Hey A!', $messages[1]->body);
+
+        $this->assertEquals($userA->id, $messages[2]->sender_id);
+        $this->assertEquals('How are you?', $messages[2]->body);
+
+        $this->assertEquals($userB->id, $messages[3]->sender_id);
+        $this->assertEquals('Great, thanks!', $messages[3]->body);
+    }
 }

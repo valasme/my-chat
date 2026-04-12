@@ -31,7 +31,7 @@ class Trash extends Model
     /** @param Builder<self> $query */
     public function scopeForUser(Builder $query, int $userId): void
     {
-        $query->where('user_id', $userId);
+        $query->where('trashes.user_id', $userId);
     }
 
     /** @param Builder<self> $query */

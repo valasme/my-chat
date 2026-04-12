@@ -85,4 +85,22 @@ class EmailVerificationTest extends TestCase
         $this->assertTrue($user->fresh()->hasVerifiedEmail());
         Event::assertNotDispatched(Verified::class);
     }
+
+    public function test_guest_cannot_access_verification_notice(): void
+    {
+        $response = $this->get(route('verification.notice'));
+
+        $response->assertRedirect(route('login'));
+    }
+
+    public function test_verified_user_is_redirected_from_verification_notice(): void
+    {
+        $user = User::factory()->create([
+            'email_verified_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user)->get(route('verification.notice'));
+
+        $response->assertRedirect(route('dashboard', absolute: false));
+    }
 }

@@ -78,4 +78,45 @@ class AuthenticationTest extends TestCase
 
         $this->assertGuest();
     }
+
+    public function test_login_requires_email(): void
+    {
+        $response = $this->post(route('login.store'), [
+            'password' => 'password',
+        ]);
+
+        $response->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+    }
+
+    public function test_login_requires_password(): void
+    {
+        $response = $this->post(route('login.store'), [
+            'email' => 'test@example.com',
+        ]);
+
+        $response->assertSessionHasErrors('password');
+
+        $this->assertGuest();
+    }
+
+    public function test_login_with_nonexistent_email_fails(): void
+    {
+        $response = $this->post(route('login.store'), [
+            'email' => 'nonexistent@example.com',
+            'password' => 'password',
+        ]);
+
+        $this->assertGuest();
+    }
+
+    public function test_authenticated_user_is_redirected_from_login(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get(route('login'));
+
+        $response->assertRedirect();
+    }
 }

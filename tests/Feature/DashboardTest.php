@@ -201,4 +201,120 @@ class DashboardTest extends TestCase
         $response->assertViewHas('ignoresCount', 0);
         $response->assertSee(__('No conversations yet.'));
     }
+
+    public function test_dashboard_excludes_trashed_conversations_from_count(): void
+    {
+        $user = User::factory()->create();
+        $other = User::factory()->create();
+
+        $contact = Contact::factory()->accepted()->create([
+            'user_id' => $user->id,
+            'contact_user_id' => $other->id,
+        ]);
+
+        $ids = [min($user->id, $other->id), max($user->id, $other->id)];
+        Conversation::factory()->create([
+            'user_one_id' => $ids[0],
+            'user_two_id' => $ids[1],
+        ]);
+
+        Trash::factory()->create([
+            'user_id' => $user->id,
+            'contact_id' => $contact->id,
+            'expires_at' => now()->addDays(7),
+        ]);
+
+        $response = $this->actingAs($user)->get(route('dashboard'));
+
+        $response->assertViewHas('conversationsCount', 0);
+    }
+
+    public function test_dashboard_limits_incoming_requests_to_five(): void
+    {
+        $user = User::factory()->create();
+        $requesters = User::factory(7)->create();
+
+        foreach ($requesters as $requester) {
+            Contact::factory()->create([
+                'user_id' => $requester->id,
+                'contact_user_id' => $user->id,
+                'status' => 'pending',
+            ]);
+        }
+
+        $response = $this->actingAs($user)->get(route('dashboard'));
+
+        $response->assertOk();
+        $response->assertViewHas('incomingRequests', fn ($requests) => $requests->count() === 5);
+        $response->assertViewHas('incomingTotal', 7);
+    }
+
+    public function test_dashboard_limits_recent_conversations_to_five(): void
+    {
+        $user = User::factory()->create();
+        $others = User::factory(7)->create();
+
+        foreach ($others as $other) {
+            Contact::factory()->accepted()->create([
+                'user_id' => $user->id,
+                'contact_user_id' => $other->id,
+            ]);
+
+            $ids = [min($user->id, $other->id), max($user->id, $other->id)];
+            $conversation = Conversation::factory()->create([
+                'user_one_id' => $ids[0],
+                'user_two_id' => $ids[1],
+            ]);
+
+            Message::factory()->create([
+                'conversation_id' => $conversation->id,
+                'sender_id' => $user->id,
+            ]);
+        }
+
+        $response = $this->actingAs($user)->get(route('dashboard'));
+
+        $response->assertOk();
+        $response->assertViewHas('recentConversations', fn ($convos) => $convos->count() === 5);
+    }
+
+    public function test_dashboard_does_not_show_outgoing_pending_requests(): void
+    {
+        $user = User::factory()->create();
+        $other = User::factory()->create(['name' => 'OutgoingTarget']);
+
+        Contact::factory()->create([
+            'user_id' => $user->id,
+            'contact_user_id' => $other->id,
+            'status' => 'pending',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('dashboard'));
+
+        $response->assertOk();
+        $response->assertViewHas('incomingRequests', fn ($requests) => $requests->count() === 0);
+        $response->assertViewHas('incomingTotal', 0);
+    }
+
+    public function test_dashboard_non_expiring_ignores_not_shown_as_expiring(): void
+    {
+        $user = User::factory()->create();
+        $other = User::factory()->create(['name' => 'FarAwayIgnore']);
+
+        Contact::factory()->accepted()->create([
+            'user_id' => $user->id,
+            'contact_user_id' => $other->id,
+        ]);
+
+        Ignore::factory()->create([
+            'ignorer_id' => $user->id,
+            'ignored_id' => $other->id,
+            'expires_at' => now()->addDays(2),
+        ]);
+
+        $response = $this->actingAs($user)->get(route('dashboard'));
+
+        $response->assertOk();
+        $response->assertViewHas('expiringSoon', fn ($items) => $items->where('name', 'FarAwayIgnore')->isEmpty());
+    }
 }

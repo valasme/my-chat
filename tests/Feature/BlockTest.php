@@ -220,4 +220,148 @@ class BlockTest extends TestCase
             ->post(route('contacts.store'), ['email' => $userA->email])
             ->assertSessionHasErrors('email');
     }
+
+    public function test_cannot_block_self(): void
+    {
+        $user = User::factory()->create();
+
+        Contact::factory()->create([
+            'user_id' => $user->id,
+            'contact_user_id' => $user->id,
+            'status' => 'accepted',
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('blocks.store'), ['user_id' => $user->id])
+            ->assertSessionHasErrors('user_id');
+    }
+
+    public function test_cannot_block_already_blocked_user(): void
+    {
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+
+        Contact::factory()->create([
+            'user_id' => $userA->id,
+            'contact_user_id' => $userB->id,
+            'status' => 'accepted',
+        ]);
+
+        Block::create([
+            'blocker_id' => $userA->id,
+            'blocked_id' => $userB->id,
+        ]);
+
+        $this->actingAs($userA)
+            ->post(route('blocks.store'), ['user_id' => $userB->id])
+            ->assertSessionHasErrors('user_id');
+    }
+
+    public function test_user_id_must_be_valid_user(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post(route('blocks.store'), ['user_id' => 999999])
+            ->assertSessionHasErrors('user_id');
+    }
+
+    public function test_user_id_is_required(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post(route('blocks.store'), [])
+            ->assertSessionHasErrors('user_id');
+    }
+
+    public function test_blocking_deletes_reverse_ignore(): void
+    {
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+
+        Contact::factory()->create([
+            'user_id' => $userA->id,
+            'contact_user_id' => $userB->id,
+            'status' => 'accepted',
+        ]);
+
+        Ignore::create([
+            'ignorer_id' => $userA->id,
+            'ignored_id' => $userB->id,
+            'expires_at' => now()->addDay(),
+        ]);
+
+        $this->actingAs($userB)
+            ->post(route('blocks.store'), ['user_id' => $userA->id]);
+
+        $this->assertDatabaseCount('ignores', 0);
+    }
+
+    public function test_block_list_sorts_az(): void
+    {
+        $user = User::factory()->create();
+        $alice = User::factory()->create(['name' => 'Alice']);
+        $zara = User::factory()->create(['name' => 'Zara']);
+
+        Block::create(['blocker_id' => $user->id, 'blocked_id' => $zara->id]);
+        Block::create(['blocker_id' => $user->id, 'blocked_id' => $alice->id]);
+
+        $this->actingAs($user)
+            ->get(route('blocks.index', ['sort' => 'az']))
+            ->assertOk()
+            ->assertSeeInOrder(['Alice', 'Zara']);
+    }
+
+    public function test_block_list_sorts_za(): void
+    {
+        $user = User::factory()->create();
+        $alice = User::factory()->create(['name' => 'Alice']);
+        $zara = User::factory()->create(['name' => 'Zara']);
+
+        Block::create(['blocker_id' => $user->id, 'blocked_id' => $zara->id]);
+        Block::create(['blocker_id' => $user->id, 'blocked_id' => $alice->id]);
+
+        $this->actingAs($user)
+            ->get(route('blocks.index', ['sort' => 'za']))
+            ->assertOk()
+            ->assertSeeInOrder(['Zara', 'Alice']);
+    }
+
+    public function test_blocker_who_blocked_user_cannot_send_contact_request(): void
+    {
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+
+        Block::create([
+            'blocker_id' => $userA->id,
+            'blocked_id' => $userB->id,
+        ]);
+
+        $this->actingAs($userA)
+            ->post(route('contacts.store'), ['email' => $userB->email])
+            ->assertSessionHasErrors('email');
+    }
+
+    public function test_guests_cannot_store_blocks(): void
+    {
+        $user = User::factory()->create();
+
+        $this->post(route('blocks.store'), ['user_id' => $user->id])
+            ->assertRedirect(route('login'));
+    }
+
+    public function test_guests_cannot_delete_blocks(): void
+    {
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+
+        $block = Block::create([
+            'blocker_id' => $userA->id,
+            'blocked_id' => $userB->id,
+        ]);
+
+        $this->delete(route('blocks.destroy', $block))
+            ->assertRedirect(route('login'));
+    }
 }

@@ -2,7 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Block;
 use App\Models\Contact;
+use App\Models\Conversation;
+use App\Models\Message;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -361,5 +364,179 @@ class ContactTest extends TestCase
         $this->assertDatabaseMissing('contacts', [
             'id' => $contact->id,
         ]);
+    }
+
+    public function test_guests_cannot_store_contacts(): void
+    {
+        $this->post(route('contacts.store'), ['email' => 'test@example.com'])
+            ->assertRedirect(route('login'));
+    }
+
+    public function test_guests_cannot_update_contacts(): void
+    {
+        $sender = User::factory()->create();
+        $recipient = User::factory()->create();
+
+        $contact = Contact::factory()->create([
+            'user_id' => $sender->id,
+            'contact_user_id' => $recipient->id,
+            'status' => 'pending',
+        ]);
+
+        $this->put(route('contacts.update', $contact), ['action' => 'accept'])
+            ->assertRedirect(route('login'));
+    }
+
+    public function test_guests_cannot_delete_contacts(): void
+    {
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+
+        $contact = Contact::factory()->create([
+            'user_id' => $userA->id,
+            'contact_user_id' => $userB->id,
+            'status' => 'accepted',
+        ]);
+
+        $this->delete(route('contacts.destroy', $contact))
+            ->assertRedirect(route('login'));
+    }
+
+    public function test_contact_request_requires_email(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post(route('contacts.store'), [])
+            ->assertSessionHasErrors('email');
+    }
+
+    public function test_contact_request_requires_valid_email_format(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post(route('contacts.store'), ['email' => 'not-an-email'])
+            ->assertSessionHasErrors('email');
+    }
+
+    public function test_third_party_cannot_accept_contact(): void
+    {
+        $sender = User::factory()->create();
+        $recipient = User::factory()->create();
+        $outsider = User::factory()->create();
+
+        $contact = Contact::factory()->create([
+            'user_id' => $sender->id,
+            'contact_user_id' => $recipient->id,
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($outsider)
+            ->put(route('contacts.update', $contact), ['action' => 'accept'])
+            ->assertForbidden();
+    }
+
+    public function test_cannot_accept_already_accepted_contact(): void
+    {
+        $sender = User::factory()->create();
+        $recipient = User::factory()->create();
+
+        $contact = Contact::factory()->create([
+            'user_id' => $sender->id,
+            'contact_user_id' => $recipient->id,
+            'status' => 'accepted',
+        ]);
+
+        $this->actingAs($recipient)
+            ->put(route('contacts.update', $contact), ['action' => 'accept'])
+            ->assertForbidden();
+    }
+
+    public function test_deleting_contact_deletes_conversation_and_messages(): void
+    {
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+
+        $contact = Contact::factory()->create([
+            'user_id' => $userA->id,
+            'contact_user_id' => $userB->id,
+            'status' => 'accepted',
+        ]);
+
+        $conversation = Conversation::create([
+            'user_one_id' => min($userA->id, $userB->id),
+            'user_two_id' => max($userA->id, $userB->id),
+        ]);
+
+        Message::create([
+            'conversation_id' => $conversation->id,
+            'sender_id' => $userA->id,
+            'body' => 'Hello',
+        ]);
+
+        Message::create([
+            'conversation_id' => $conversation->id,
+            'sender_id' => $userB->id,
+            'body' => 'Hi there',
+        ]);
+
+        $this->actingAs($userA)
+            ->delete(route('contacts.destroy', $contact))
+            ->assertRedirect(route('contacts.index'));
+
+        $this->assertDatabaseMissing('conversations', ['id' => $conversation->id]);
+        $this->assertDatabaseCount('messages', 0);
+        $this->assertDatabaseMissing('contacts', ['id' => $contact->id]);
+    }
+
+    public function test_contacts_index_shows_outgoing_requests(): void
+    {
+        $sender = User::factory()->create();
+        $recipient = User::factory()->create();
+
+        Contact::factory()->create([
+            'user_id' => $sender->id,
+            'contact_user_id' => $recipient->id,
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($sender)
+            ->get(route('contacts.index'))
+            ->assertOk()
+            ->assertSee($recipient->name);
+    }
+
+    public function test_user_can_view_contact_from_other_side(): void
+    {
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+
+        $contact = Contact::factory()->create([
+            'user_id' => $userA->id,
+            'contact_user_id' => $userB->id,
+            'status' => 'accepted',
+        ]);
+
+        $this->actingAs($userB)
+            ->get(route('contacts.show', $contact))
+            ->assertOk()
+            ->assertSee($userA->name);
+    }
+
+    public function test_update_with_invalid_action(): void
+    {
+        $sender = User::factory()->create();
+        $recipient = User::factory()->create();
+
+        $contact = Contact::factory()->create([
+            'user_id' => $sender->id,
+            'contact_user_id' => $recipient->id,
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($recipient)
+            ->put(route('contacts.update', $contact), ['action' => 'invalid'])
+            ->assertSessionHasErrors('action');
     }
 }

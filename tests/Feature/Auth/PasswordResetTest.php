@@ -78,4 +78,35 @@ class PasswordResetTest extends TestCase
             return true;
         });
     }
+
+    public function test_reset_password_link_not_sent_for_nonexistent_email(): void
+    {
+        Notification::fake();
+
+        $this->post(route('password.request'), ['email' => 'nobody@example.com']);
+
+        Notification::assertNothingSent();
+    }
+
+    public function test_password_reset_requires_matching_confirmation(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->create();
+
+        $this->post(route('password.request'), ['email' => $user->email]);
+
+        Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
+            $response = $this->post(route('password.update'), [
+                'token' => $notification->token,
+                'email' => $user->email,
+                'password' => 'new-password',
+                'password_confirmation' => 'different-password',
+            ]);
+
+            $response->assertSessionHasErrors('password');
+
+            return true;
+        });
+    }
 }

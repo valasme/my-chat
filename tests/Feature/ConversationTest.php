@@ -254,4 +254,205 @@ class ConversationTest extends TestCase
         $page1->assertSee('Message 0');
         $page1->assertDontSee('Message 54');
     }
+
+    public function test_guests_cannot_view_conversation(): void
+    {
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+
+        $conversation = Conversation::create([
+            'user_one_id' => min($userA->id, $userB->id),
+            'user_two_id' => max($userA->id, $userB->id),
+        ]);
+
+        $this->get(route('conversations.show', $conversation))
+            ->assertRedirect(route('login'));
+    }
+
+    public function test_conversation_with_no_messages_shows_ok(): void
+    {
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+
+        Contact::factory()->create([
+            'user_id' => $userA->id,
+            'contact_user_id' => $userB->id,
+            'status' => 'accepted',
+        ]);
+
+        $conversation = Conversation::create([
+            'user_one_id' => min($userA->id, $userB->id),
+            'user_two_id' => max($userA->id, $userB->id),
+        ]);
+
+        $this->actingAs($userA)
+            ->get(route('conversations.show', $conversation))
+            ->assertOk();
+    }
+
+    public function test_conversations_index_sorts_za(): void
+    {
+        $userA = User::factory()->create();
+        $userB = User::factory()->create(['name' => 'Alice']);
+        $userC = User::factory()->create(['name' => 'Zara']);
+
+        foreach ([$userB, $userC] as $other) {
+            Contact::factory()->create([
+                'user_id' => $userA->id,
+                'contact_user_id' => $other->id,
+                'status' => 'accepted',
+            ]);
+
+            Conversation::create([
+                'user_one_id' => min($userA->id, $other->id),
+                'user_two_id' => max($userA->id, $other->id),
+            ]);
+        }
+
+        $response = $this->actingAs($userA)
+            ->get(route('conversations.index', ['sort' => 'za']));
+
+        $response->assertOk();
+        $response->assertSeeInOrder(['Zara', 'Alice']);
+    }
+
+    public function test_conversation_shows_other_users_name(): void
+    {
+        $userA = User::factory()->create(['name' => 'Alice']);
+        $userB = User::factory()->create(['name' => 'Bob']);
+
+        Contact::factory()->create([
+            'user_id' => $userA->id,
+            'contact_user_id' => $userB->id,
+            'status' => 'accepted',
+        ]);
+
+        $conversation = Conversation::create([
+            'user_one_id' => min($userA->id, $userB->id),
+            'user_two_id' => max($userA->id, $userB->id),
+        ]);
+
+        $this->actingAs($userA)
+            ->get(route('conversations.show', $conversation))
+            ->assertOk()
+            ->assertSee('Bob');
+
+        $this->actingAs($userB)
+            ->get(route('conversations.show', $conversation))
+            ->assertOk()
+            ->assertSee('Alice');
+    }
+
+    public function test_conversations_index_default_sort_by_recent_message(): void
+    {
+        $userA = User::factory()->create();
+        $userB = User::factory()->create(['name' => 'OlderContact']);
+        $userC = User::factory()->create(['name' => 'NewerContact']);
+
+        $conversations = [];
+        foreach ([$userB, $userC] as $other) {
+            Contact::factory()->create([
+                'user_id' => $userA->id,
+                'contact_user_id' => $other->id,
+                'status' => 'accepted',
+            ]);
+
+            $conversations[$other->id] = Conversation::create([
+                'user_one_id' => min($userA->id, $other->id),
+                'user_two_id' => max($userA->id, $other->id),
+            ]);
+        }
+
+        $this->travel(-2)->hours();
+        Message::create([
+            'conversation_id' => $conversations[$userB->id]->id,
+            'sender_id' => $userA->id,
+            'body' => 'Old message',
+        ]);
+
+        $this->travelBack();
+        Message::create([
+            'conversation_id' => $conversations[$userC->id]->id,
+            'sender_id' => $userA->id,
+            'body' => 'New message',
+        ]);
+
+        $response = $this->actingAs($userA)
+            ->get(route('conversations.index'));
+
+        $response->assertOk();
+        $response->assertSeeInOrder(['NewerContact', 'OlderContact']);
+    }
+
+    public function test_conversations_index_empty_state(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('conversations.index'))
+            ->assertOk();
+    }
+
+    public function test_expired_ignore_does_not_exclude_conversation(): void
+    {
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+
+        Contact::factory()->create([
+            'user_id' => $userA->id,
+            'contact_user_id' => $userB->id,
+            'status' => 'accepted',
+        ]);
+
+        Conversation::create([
+            'user_one_id' => min($userA->id, $userB->id),
+            'user_two_id' => max($userA->id, $userB->id),
+        ]);
+
+        Ignore::create([
+            'ignorer_id' => $userA->id,
+            'ignored_id' => $userB->id,
+            'expires_at' => now()->subDay(),
+        ]);
+
+        $this->actingAs($userA)
+            ->get(route('conversations.index'))
+            ->assertOk()
+            ->assertSee($userB->name);
+    }
+
+    public function test_conversation_show_displays_messages_from_both_users(): void
+    {
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+
+        Contact::factory()->create([
+            'user_id' => $userA->id,
+            'contact_user_id' => $userB->id,
+            'status' => 'accepted',
+        ]);
+
+        $conversation = Conversation::create([
+            'user_one_id' => min($userA->id, $userB->id),
+            'user_two_id' => max($userA->id, $userB->id),
+        ]);
+
+        Message::create([
+            'conversation_id' => $conversation->id,
+            'sender_id' => $userA->id,
+            'body' => 'Hello from A',
+        ]);
+
+        Message::create([
+            'conversation_id' => $conversation->id,
+            'sender_id' => $userB->id,
+            'body' => 'Hello from B',
+        ]);
+
+        $this->actingAs($userA)
+            ->get(route('conversations.show', $conversation))
+            ->assertOk()
+            ->assertSee('Hello from A')
+            ->assertSee('Hello from B');
+    }
 }

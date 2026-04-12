@@ -18,4 +18,34 @@ class PasswordConfirmationTest extends TestCase
 
         $response->assertOk();
     }
+
+    public function test_password_can_be_confirmed(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('password.confirm.store'), [
+            'password' => 'password',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHasNoErrors();
+    }
+
+    public function test_password_is_not_confirmed_with_invalid_password(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('password.confirm.store'), [
+            'password' => 'wrong-password',
+        ]);
+
+        $response->assertSessionHasErrors();
+    }
+
+    public function test_guest_cannot_access_password_confirmation(): void
+    {
+        $response = $this->get(route('password.confirm'));
+
+        $response->assertRedirect(route('login'));
+    }
 }
