@@ -3,11 +3,11 @@
         <div class="flex items-center justify-between">
             <flux:heading size="xl">{{ __('Blocked Users') }}</flux:heading>
             @if ($blocks->isNotEmpty())
-                <div class="flex items-center gap-1">
-                    <flux:button size="sm" :variant="$sort === 'az' ? 'filled' : 'subtle'" :href="route('blocks.index', ['sort' => 'az'])">A–Z</flux:button>
-                    <flux:button size="sm" :variant="$sort === 'za' ? 'filled' : 'subtle'" :href="route('blocks.index', ['sort' => 'za'])">Z–A</flux:button>
+                <div class="flex items-center gap-1" role="group" aria-label="{{ __('Sort options') }}">
+                    <flux:button size="sm" :variant="$sort === 'az' ? 'filled' : 'subtle'" :href="route('blocks.index', ['sort' => 'az'])" aria-label="{{ __('Sort A to Z') }}" :aria-pressed="$sort === 'az' ? 'true' : 'false'">A–Z</flux:button>
+                    <flux:button size="sm" :variant="$sort === 'za' ? 'filled' : 'subtle'" :href="route('blocks.index', ['sort' => 'za'])" aria-label="{{ __('Sort Z to A') }}" :aria-pressed="$sort === 'za' ? 'true' : 'false'">Z–A</flux:button>
                     @if ($sort)
-                        <flux:button size="sm" variant="ghost" icon="x-mark" :href="route('blocks.index')" />
+                        <flux:button size="sm" variant="ghost" icon="x-mark" :href="route('blocks.index')" aria-label="{{ __('Clear sort') }}" />
                     @endif
                 </div>
             @endif
@@ -37,13 +37,13 @@
                                 </div>
                             </flux:table.cell>
                             <flux:table.cell class="text-zinc-500">{{ $block->blocked->email }}</flux:table.cell>
-                            <flux:table.cell class="text-zinc-400">{{ $block->created_at->diffForHumans() }}</flux:table.cell>
+                            <flux:table.cell class="text-zinc-400"><time datetime="{{ $block->created_at->toIso8601String() }}">{{ $block->created_at->diffForHumans() }}</time></flux:table.cell>
                             <flux:table.cell>
                                 <div class="flex justify-end">
                                     <form method="POST" action="{{ route('blocks.destroy', $block) }}" onsubmit="return confirm({{ Js::from(__('Unblock this user?')) }})">
                                         @csrf
                                         @method('DELETE')
-                                        <flux:button type="submit" variant="subtle" size="sm">{{ __('Unblock') }}</flux:button>
+                                        <flux:button type="submit" variant="subtle" size="sm" aria-label="{{ __('Unblock :name', ['name' => $block->blocked->name]) }}">{{ __('Unblock') }}</flux:button>
                                     </form>
                                 </div>
                             </flux:table.cell>
@@ -51,9 +51,9 @@
                     @endforeach
                 </flux:table.rows>
             </flux:table>
-            <div class="mt-4">
+            <nav class="mt-4" aria-label="{{ __('Blocked users pagination') }}">
                 {{ $blocks->links() }}
-            </div>
+            </nav>
         @endif
     </div>
 </x-layouts::app>

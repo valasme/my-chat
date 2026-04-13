@@ -14,14 +14,16 @@
         </a>
 
         {{-- Desktop nav --}}
-        <nav class="hidden items-center gap-1 sm:flex sm:gap-2">
+        <nav class="hidden items-center gap-1 sm:flex sm:gap-2" aria-label="{{ __('Main navigation') }}">
             <a
                 href="https://github.com/valasme/my-chat"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="inline-flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium text-zinc-400 underline-offset-4 transition hover:text-zinc-100 hover:underline"
+                aria-label="{{ __('View source on GitHub') }}"
             >
                 <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"/></svg>
+                <span class="sr-only">GitHub</span>
             </a>
 
             @if (Route::has('login'))
@@ -81,7 +83,7 @@
             </button>
 
             {{-- Centered links --}}
-            <nav class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-8">
+            <nav class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-8" aria-label="{{ __('Mobile navigation') }}">
                 @if (Route::has('login'))
                     @auth
                         <a
@@ -126,7 +128,7 @@
 </header>
 
 {{-- Spacer for fixed header --}}
-<div class="h-[120px]"></div>
+<div class="h-[120px]" aria-hidden="true"></div>
 
 <main class="mx-auto max-w-6xl px-5 sm:px-8">
 
@@ -166,19 +168,19 @@
     </section>
 
     {{-- Features --}}
-    <section class="py-12">
-        <p class="mb-8 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Features</p>
+    <section class="py-12" aria-labelledby="features-heading">
+        <h2 id="features-heading" class="mb-8 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Features</h2>
         <div class="grid gap-4 sm:grid-cols-3">
             <div class="flex h-40 flex-col justify-center rounded-md border border-zinc-700 bg-[#262626] p-8">
-                <p class="text-sm font-semibold text-zinc-100">Secure chat</p>
+                <h3 class="text-sm font-semibold text-zinc-100">Secure chat</h3>
                 <p class="mt-2 text-sm leading-relaxed text-zinc-400">Private messaging designed for safe day-to-day communication.</p>
             </div>
             <div class="flex h-40 flex-col justify-center rounded-md border border-zinc-700 bg-[#262626] p-8">
-                <p class="text-sm font-semibold text-zinc-100">Encrypted</p>
+                <h3 class="text-sm font-semibold text-zinc-100">Encrypted</h3>
                 <p class="mt-2 text-sm leading-relaxed text-zinc-400">Messages are encrypted to help protect user privacy.</p>
             </div>
             <div class="flex h-40 flex-col justify-center rounded-md border border-zinc-700 bg-[#262626] p-8">
-                <p class="text-sm font-semibold text-zinc-100">Contacts</p>
+                <h3 class="text-sm font-semibold text-zinc-100">Contacts</h3>
                 <p class="mt-2 text-sm leading-relaxed text-zinc-400">Contacts with blocking, accepting, ignoring, accepting. When one user sends a request to another user, it automatically adds the contact to both users.</p>
             </div>
         </div>
@@ -189,39 +191,41 @@
         <div class="overflow-hidden rounded-md border border-zinc-700">
             <img
                 src="{{ asset('open-graph.png') }}"
-                alt="MyChat preview"
+                alt="{{ __('MyChat application preview showing conversations and contacts interface') }}"
                 class="block w-full"
                 loading="lazy"
+                width="1200"
+                height="630"
             >
         </div>
     </section>
 
     {{-- Tech stack grid: 3 rows x 2 columns --}}
-    <section class="py-12">
-        <p class="mb-8 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Tech Stack</p>
+    <section class="py-12" aria-labelledby="tech-stack-heading">
+        <h2 id="tech-stack-heading" class="mb-8 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Tech Stack</h2>
         <div class="grid gap-4 sm:grid-cols-2">
             <div class="flex h-40 flex-col justify-center rounded-md border border-zinc-700 bg-[#262626] p-8">
-                <p class="text-sm font-semibold text-zinc-100">Laravel 13</p>
+                <h3 class="text-sm font-semibold text-zinc-100">Laravel 13</h3>
                 <p class="mt-2 text-sm leading-relaxed text-zinc-400">Full-stack PHP framework powering the backend and routing.</p>
             </div>
             <div class="flex h-40 flex-col justify-center rounded-md border border-zinc-700 bg-[#262626] p-8">
-                <p class="text-sm font-semibold text-zinc-100">Livewire 4</p>
+                <h3 class="text-sm font-semibold text-zinc-100">Livewire 4</h3>
                 <p class="mt-2 text-sm leading-relaxed text-zinc-400">Reactive server-driven UI components without writing JavaScript.</p>
             </div>
             <div class="flex h-40 flex-col justify-center rounded-md border border-zinc-700 bg-[#262626] p-8">
-                <p class="text-sm font-semibold text-zinc-100">Flux UI</p>
+                <h3 class="text-sm font-semibold text-zinc-100">Flux UI</h3>
                 <p class="mt-2 text-sm leading-relaxed text-zinc-400">Official Livewire component library for polished interfaces.</p>
             </div>
             <div class="flex h-40 flex-col justify-center rounded-md border border-zinc-700 bg-[#262626] p-8">
-                <p class="text-sm font-semibold text-zinc-100">Tailwind CSS 4</p>
+                <h3 class="text-sm font-semibold text-zinc-100">Tailwind CSS 4</h3>
                 <p class="mt-2 text-sm leading-relaxed text-zinc-400">Utility-first CSS framework for rapid, responsive styling.</p>
             </div>
             <div class="flex h-40 flex-col justify-center rounded-md border border-zinc-700 bg-[#262626] p-8">
-                <p class="text-sm font-semibold text-zinc-100">Laravel Fortify</p>
+                <h3 class="text-sm font-semibold text-zinc-100">Laravel Fortify</h3>
                 <p class="mt-2 text-sm leading-relaxed text-zinc-400">Headless authentication backend with 2FA and password reset.</p>
             </div>
             <div class="flex h-40 flex-col justify-center rounded-md border border-zinc-700 bg-[#262626] p-8">
-                <p class="text-sm font-semibold text-zinc-100">PHP 8.5</p>
+                <h3 class="text-sm font-semibold text-zinc-100">PHP 8.5</h3>
                 <p class="mt-2 text-sm leading-relaxed text-zinc-400">Latest PHP runtime with modern language features and performance.</p>
             </div>
         </div>
@@ -237,7 +241,7 @@
             <span class="text-sm font-medium text-zinc-400">MyChat</span>
         </div>
 
-        <p class="text-xs text-zinc-500" x-data x-text="new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })"></p>
+        <p class="text-xs text-zinc-500" aria-live="off" x-data x-text="new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })"></p>
 
         <a
             href="https://github.com/valasme/my-chat"

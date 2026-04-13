@@ -3,11 +3,11 @@
         <div class="flex items-center justify-between">
             <flux:heading size="xl">{{ __('Trash') }}</flux:heading>
             @if ($trashes->isNotEmpty())
-                <div class="flex items-center gap-1">
-                    <flux:button size="sm" :variant="$sort === 'az' ? 'filled' : 'subtle'" :href="route('trashes.index', ['sort' => 'az'])">A–Z</flux:button>
-                    <flux:button size="sm" :variant="$sort === 'za' ? 'filled' : 'subtle'" :href="route('trashes.index', ['sort' => 'za'])">Z–A</flux:button>
+                <div class="flex items-center gap-1" role="group" aria-label="{{ __('Sort options') }}">
+                    <flux:button size="sm" :variant="$sort === 'az' ? 'filled' : 'subtle'" :href="route('trashes.index', ['sort' => 'az'])" aria-label="{{ __('Sort A to Z') }}" :aria-pressed="$sort === 'az' ? 'true' : 'false'">A–Z</flux:button>
+                    <flux:button size="sm" :variant="$sort === 'za' ? 'filled' : 'subtle'" :href="route('trashes.index', ['sort' => 'za'])" aria-label="{{ __('Sort Z to A') }}" :aria-pressed="$sort === 'za' ? 'true' : 'false'">Z–A</flux:button>
                     @if ($sort)
-                        <flux:button size="sm" variant="ghost" icon="x-mark" :href="route('trashes.index')" />
+                        <flux:button size="sm" variant="ghost" icon="x-mark" :href="route('trashes.index')" aria-label="{{ __('Clear sort') }}" />
                     @endif
                 </div>
             @endif
@@ -37,7 +37,7 @@
                                     <span class="font-medium">{{ $otherUser->name }}</span>
                                 </div>
                             </flux:table.cell>
-                            <flux:table.cell class="text-zinc-400">{{ $trash->expires_at->format('M d, Y') }}</flux:table.cell>
+                            <flux:table.cell class="text-zinc-400"><time datetime="{{ $trash->expires_at->toIso8601String() }}">{{ $trash->expires_at->format('M d, Y') }}</time></flux:table.cell>
                             <flux:table.cell>
                                 @if ($trash->is_quick_delete)
                                     <flux:badge size="sm">{{ __('Quick Delete') }}</flux:badge>
@@ -50,12 +50,12 @@
                                     <form method="POST" action="{{ route('trashes.destroy', $trash) }}" onsubmit="return confirm({{ Js::from(__('Restore this contact from trash?')) }})">
                                         @csrf
                                         @method('DELETE')
-                                        <flux:button type="submit" variant="filled" size="sm">{{ __('Restore') }}</flux:button>
+                                        <flux:button type="submit" variant="filled" size="sm" aria-label="{{ __('Restore :name from trash', ['name' => $otherUser->name]) }}">{{ __('Restore') }}</flux:button>
                                     </form>
                                     <form method="POST" action="{{ route('trashes.force-delete', $trash) }}" onsubmit="return confirm({{ Js::from(__('Permanently delete this contact and all conversations?')) }})">
                                         @csrf
                                         @method('DELETE')
-                                        <flux:button type="submit" variant="subtle" size="sm">{{ __('Delete Now') }}</flux:button>
+                                        <flux:button type="submit" variant="subtle" size="sm" aria-label="{{ __('Permanently delete :name', ['name' => $otherUser->name]) }}">{{ __('Delete Now') }}</flux:button>
                                     </form>
                                 </div>
                             </flux:table.cell>
@@ -63,9 +63,9 @@
                     @endforeach
                 </flux:table.rows>
             </flux:table>
-            <div class="mt-4">
+            <nav class="mt-4" aria-label="{{ __('Trash pagination') }}">
                 {{ $trashes->links() }}
-            </div>
+            </nav>
         @endif
     </div>
 </x-layouts::app>

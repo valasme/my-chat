@@ -157,7 +157,7 @@ new class extends Component {
 >
         <div class="space-y-6">
             <div class="flex flex-col items-center space-y-4">
-                <div class="p-0.5 w-auto rounded-full border border-stone-100 dark:border-stone-600 bg-white dark:bg-stone-800 shadow-sm">
+                <div class="p-0.5 w-auto rounded-full border border-stone-100 dark:border-stone-600 bg-white dark:bg-stone-800 shadow-sm" aria-hidden="true">
                     <div class="p-2.5 rounded-full border border-stone-200 dark:border-stone-600 overflow-hidden bg-stone-100 dark:bg-stone-200 relative">
                         <div class="flex items-stretch absolute inset-0 w-full h-full divide-x [&>div]:flex-1 divide-stone-200 dark:divide-stone-300 justify-around opacity-50">
                             @for ($i = 1; $i <= 5; $i++)
@@ -219,7 +219,7 @@ new class extends Component {
                 @enderror
 
                 <div class="flex justify-center">
-                    <div class="relative w-64 overflow-hidden border rounded-lg border-stone-200 dark:border-stone-700 aspect-square">
+                    <div class="relative w-64 overflow-hidden border rounded-lg border-stone-200 dark:border-stone-700 aspect-square" role="img" aria-label="{{ __('QR code for authenticator app setup') }}">
                         @empty($qrCodeSvg)
                             <div class="absolute inset-0 flex items-center justify-center bg-white dark:bg-stone-700 animate-pulse">
                                 <flux:icon.loading/>
@@ -282,11 +282,13 @@ new class extends Component {
                                     readonly
                                     value="{{ $manualSetupKey }}"
                                     class="w-full p-3 bg-transparent outline-none text-stone-900 dark:text-stone-100"
+                                    aria-label="{{ __('Manual setup key') }}"
                                 />
 
                                 <button
                                     @click="copy()"
                                     class="px-3 transition-colors border-l cursor-pointer border-stone-200 dark:border-stone-600"
+                                    aria-label="{{ __('Copy setup key to clipboard') }}"
                                 >
                                     <flux:icon.document-duplicate x-show="!copied" variant="outline"></flux:icon>
                                     <flux:icon.check

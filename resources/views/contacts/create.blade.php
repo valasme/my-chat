@@ -1,7 +1,7 @@
 <x-layouts::app :title="__('Add Contact')">
     <div class="flex h-full w-full flex-1 flex-col gap-8 rounded-xl">
         <div class="flex items-center gap-3">
-            <flux:button icon="arrow-left" :href="route('contacts.index')" wire:navigate variant="subtle" />
+            <flux:button icon="arrow-left" :href="route('contacts.index')" wire:navigate variant="subtle" aria-label="{{ __('Back to contacts') }}" />
             <flux:heading size="xl">{{ __('Add Contact') }}</flux:heading>
         </div>
 

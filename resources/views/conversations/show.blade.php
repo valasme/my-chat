@@ -1,14 +1,14 @@
 <x-layouts::app :title="$otherUser->name">
     <div class="relative flex h-full w-full flex-1 flex-col rounded-xl">
         {{-- Header --}}
-        <div class="flex items-center gap-3 border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
-            <flux:button icon="arrow-left" :href="route('conversations.index')" wire:navigate variant="subtle" size="sm" />
+        <header class="flex items-center gap-3 border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
+            <flux:button icon="arrow-left" :href="route('conversations.index')" wire:navigate variant="subtle" size="sm" aria-label="{{ __('Back to conversations') }}" />
             <flux:avatar size="xs" :name="$otherUser->name" />
             <flux:heading>{{ $otherUser->name }}</flux:heading>
-        </div>
+        </header>
 
         @if ($isIgnored)
-            <div class="px-4 pt-3">
+            <div class="px-4 pt-3" role="alert">
                 <flux:callout>
                     {{ __('This user is unavailable until :date.', ['date' => $isIgnored->expires_at->format('M d, Y H:i')]) }}
                 </flux:callout>
@@ -16,7 +16,7 @@
         @endif
 
         @if ($isTrashed)
-            <div class="px-4 pt-3">
+            <div class="px-4 pt-3" role="alert">
                 <flux:callout>
                     {{ __('This contact is in your trash. Restore to see new messages and send messages.') }}
                 </flux:callout>
@@ -24,7 +24,7 @@
         @endif
 
         {{-- Messages --}}
-        <div id="messages-container" class="flex-1 space-y-3 overflow-y-auto p-4 {{ (! $isTrashed && ! $isIgnored) ? 'pb-20' : '' }}">
+        <div id="messages-container" class="flex-1 space-y-3 overflow-y-auto p-4 {{ (! $isTrashed && ! $isIgnored) ? 'pb-20' : '' }}" role="log" aria-label="{{ __('Messages with :name', ['name' => $otherUser->name]) }}" aria-live="polite">
             @if ($messages->hasPages())
                 <div class="mb-4">
                     {{ $messages->links() }}
@@ -36,7 +36,7 @@
                 <div class="flex {{ $isMine ? 'justify-end' : 'justify-start' }}">
                     <div class="max-w-xs rounded-lg px-4 py-2 {{ $isMine ? 'bg-zinc-800 text-white dark:bg-zinc-200 dark:text-zinc-900' : 'bg-zinc-100 text-zinc-900 dark:bg-zinc-700 dark:text-zinc-100' }}">
                         <p class="text-sm">{{ $msg->body }}</p>
-                        <p class="mt-1 text-xs opacity-50">{{ $msg->created_at->format('H:i') }}</p>
+                        <p class="mt-1 text-xs opacity-50"><time datetime="{{ $msg->created_at->toIso8601String() }}">{{ $msg->created_at->format('H:i') }}</time></p>
                     </div>
                 </div>
             @empty
@@ -52,12 +52,12 @@
                 <form method="POST" action="{{ route('messages.store', $conversation) }}" class="flex items-center gap-2">
                     @csrf
                     <div class="flex-1">
-                        <flux:input name="body" placeholder="{{ __('Type a message...') }}" required />
+                        <flux:input name="body" placeholder="{{ __('Type a message...') }}" required autocomplete="off" aria-label="{{ __('Message body') }}" />
                     </div>
-                    <flux:button type="submit" variant="filled" icon="arrow-right" />
+                    <flux:button type="submit" variant="filled" icon="arrow-right" aria-label="{{ __('Send message') }}" />
                 </form>
                 @error('body')
-                    <p class="mt-1 text-xs text-zinc-500">{{ $message }}</p>
+                    <p class="mt-1 text-xs text-zinc-500" role="alert">{{ $message }}</p>
                 @enderror
             </div>
         @endif

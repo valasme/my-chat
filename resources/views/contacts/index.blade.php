@@ -13,8 +13,8 @@
 
         {{-- Incoming Pending Requests --}}
         @if ($incoming->isNotEmpty())
-            <div>
-                <flux:heading size="lg" class="mb-3">{{ __('Incoming Requests') }}</flux:heading>
+            <section aria-labelledby="contacts-incoming-heading">
+                <flux:heading size="lg" class="mb-3" id="contacts-incoming-heading">{{ __('Incoming Requests') }}</flux:heading>
                 <flux:table>
                     <flux:table.columns>
                         <flux:table.column>{{ __('Name') }}</flux:table.column>
@@ -37,13 +37,13 @@
                                             @csrf
                                             @method('PUT')
                                             <input type="hidden" name="action" value="accept">
-                                            <flux:button type="submit" variant="filled" size="sm">{{ __('Accept') }}</flux:button>
+                                            <flux:button type="submit" variant="filled" size="sm" aria-label="{{ __('Accept request from :name', ['name' => $contact->user->name]) }}">{{ __('Accept') }}</flux:button>
                                         </form>
                                         <form method="POST" action="{{ route('contacts.update', $contact) }}" onsubmit="return confirm({{ Js::from(__('Decline this request?')) }})">
                                             @csrf
                                             @method('PUT')
                                             <input type="hidden" name="action" value="decline">
-                                            <flux:button type="submit" variant="subtle" size="sm">{{ __('Decline') }}</flux:button>
+                                            <flux:button type="submit" variant="subtle" size="sm" aria-label="{{ __('Decline request from :name', ['name' => $contact->user->name]) }}">{{ __('Decline') }}</flux:button>
                                         </form>
                                     </div>
                                 </flux:table.cell>
@@ -51,13 +51,13 @@
                         @endforeach
                     </flux:table.rows>
                 </flux:table>
-            </div>
+            </section>
         @endif
 
         {{-- Outgoing Pending Requests --}}
         @if ($outgoing->isNotEmpty())
-            <div>
-                <flux:heading size="lg" class="mb-3">{{ __('Pending Requests') }}</flux:heading>
+            <section aria-labelledby="contacts-outgoing-heading">
+                <flux:heading size="lg" class="mb-3" id="contacts-outgoing-heading">{{ __('Pending Requests') }}</flux:heading>
                 <flux:table>
                     <flux:table.columns>
                         <flux:table.column>{{ __('Name') }}</flux:table.column>
@@ -83,7 +83,7 @@
                                         <form method="POST" action="{{ route('contacts.destroy', $contact) }}" onsubmit="return confirm({{ Js::from(__('Cancel this request?')) }})">
                                             @csrf
                                             @method('DELETE')
-                                            <flux:button type="submit" variant="subtle" size="sm">{{ __('Cancel') }}</flux:button>
+                                            <flux:button type="submit" variant="subtle" size="sm" aria-label="{{ __('Cancel request to :name', ['name' => $contact->contactUser->name]) }}">{{ __('Cancel') }}</flux:button>
                                         </form>
                                     </div>
                                 </flux:table.cell>
@@ -91,19 +91,19 @@
                         @endforeach
                     </flux:table.rows>
                 </flux:table>
-            </div>
+            </section>
         @endif
 
         {{-- Accepted Contacts --}}
-        <div>
+        <section aria-labelledby="contacts-accepted-heading">
             <div class="mb-3 flex items-center justify-between">
-                <flux:heading size="lg">{{ __('Your Contacts') }}</flux:heading>
+                <flux:heading size="lg" id="contacts-accepted-heading">{{ __('Your Contacts') }}</flux:heading>
                 @if ($accepted->isNotEmpty())
-                    <div class="flex items-center gap-1">
-                        <flux:button size="sm" :variant="$sort === 'az' ? 'filled' : 'subtle'" :href="route('contacts.index', ['sort' => 'az'])">A–Z</flux:button>
-                        <flux:button size="sm" :variant="$sort === 'za' ? 'filled' : 'subtle'" :href="route('contacts.index', ['sort' => 'za'])">Z–A</flux:button>
+                    <div class="flex items-center gap-1" role="group" aria-label="{{ __('Sort options') }}">
+                        <flux:button size="sm" :variant="$sort === 'az' ? 'filled' : 'subtle'" :href="route('contacts.index', ['sort' => 'az'])" aria-label="{{ __('Sort A to Z') }}" :aria-pressed="$sort === 'az' ? 'true' : 'false'">A–Z</flux:button>
+                        <flux:button size="sm" :variant="$sort === 'za' ? 'filled' : 'subtle'" :href="route('contacts.index', ['sort' => 'za'])" aria-label="{{ __('Sort Z to A') }}" :aria-pressed="$sort === 'za' ? 'true' : 'false'">Z–A</flux:button>
                         @if ($sort)
-                            <flux:button size="sm" variant="ghost" icon="x-mark" :href="route('contacts.index')" />
+                            <flux:button size="sm" variant="ghost" icon="x-mark" :href="route('contacts.index')" aria-label="{{ __('Clear sort') }}" />
                         @endif
                     </div>
                 @endif
@@ -122,7 +122,7 @@
                             @php $otherUser = $contact->getOtherUser(auth()->id()); @endphp
                             <flux:table.row>
                                 <flux:table.cell>
-                                    <a href="{{ route('contacts.show', $contact) }}" class="flex items-center gap-2 hover:underline" wire:navigate>
+                                    <a href="{{ route('contacts.show', $contact) }}" class="flex items-center gap-2 hover:underline" wire:navigate aria-label="{{ __('View contact :name', ['name' => $otherUser->name]) }}">
                                         <flux:avatar size="xs" :name="$otherUser->name" />
                                         <span class="font-medium">{{ $otherUser->name }}</span>
                                     </a>
@@ -137,10 +137,10 @@
                         @endforeach
                     </flux:table.rows>
                 </flux:table>
-                <div class="mt-4">
+                <nav class="mt-4" aria-label="{{ __('Contacts pagination') }}">
                     {{ $accepted->links() }}
-                </div>
+                </nav>
             @endif
-        </div>
+        </section>
     </div>
 </x-layouts::app>

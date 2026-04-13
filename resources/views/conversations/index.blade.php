@@ -3,11 +3,11 @@
         <div class="flex items-center justify-between">
             <flux:heading size="xl">{{ __('Conversations') }}</flux:heading>
             @if ($conversations->isNotEmpty())
-                <div class="flex items-center gap-1">
-                    <flux:button size="sm" :variant="$sort === 'az' ? 'filled' : 'subtle'" :href="route('conversations.index', ['sort' => 'az'])">A–Z</flux:button>
-                    <flux:button size="sm" :variant="$sort === 'za' ? 'filled' : 'subtle'" :href="route('conversations.index', ['sort' => 'za'])">Z–A</flux:button>
+                <div class="flex items-center gap-1" role="group" aria-label="{{ __('Sort options') }}">
+                    <flux:button size="sm" :variant="$sort === 'az' ? 'filled' : 'subtle'" :href="route('conversations.index', ['sort' => 'az'])" aria-label="{{ __('Sort A to Z') }}" :aria-pressed="$sort === 'az' ? 'true' : 'false'">A–Z</flux:button>
+                    <flux:button size="sm" :variant="$sort === 'za' ? 'filled' : 'subtle'" :href="route('conversations.index', ['sort' => 'za'])" aria-label="{{ __('Sort Z to A') }}" :aria-pressed="$sort === 'za' ? 'true' : 'false'">Z–A</flux:button>
                     @if ($sort)
-                        <flux:button size="sm" variant="ghost" icon="x-mark" :href="route('conversations.index')" />
+                        <flux:button size="sm" variant="ghost" icon="x-mark" :href="route('conversations.index')" aria-label="{{ __('Clear sort') }}" />
                     @endif
                 </div>
             @endif
@@ -30,7 +30,7 @@
                         @endphp
                         <flux:table.row>
                             <flux:table.cell>
-                                <a href="{{ route('conversations.show', $conversation) }}" class="flex items-center gap-2 hover:underline" wire:navigate>
+                                <a href="{{ route('conversations.show', $conversation) }}" class="flex items-center gap-2 hover:underline" wire:navigate aria-label="{{ __('Open conversation with :name', ['name' => $otherUser->name]) }}">
                                     <flux:avatar size="xs" :name="$otherUser->name" />
                                     <span class="font-medium">{{ $otherUser->name }}</span>
                                 </a>
@@ -44,16 +44,16 @@
                             </flux:table.cell>
                             <flux:table.cell class="text-right text-zinc-400">
                                 @if ($lastMessage)
-                                    {{ $lastMessage->created_at->diffForHumans() }}
+                                    <time datetime="{{ $lastMessage->created_at->toIso8601String() }}">{{ $lastMessage->created_at->diffForHumans() }}</time>
                                 @endif
                             </flux:table.cell>
                         </flux:table.row>
                     @endforeach
                 </flux:table.rows>
             </flux:table>
-            <div class="mt-4">
+            <nav class="mt-4" aria-label="{{ __('Conversations pagination') }}">
                 {{ $conversations->links() }}
-            </div>
+            </nav>
         @endif
     </div>
 </x-layouts::app>

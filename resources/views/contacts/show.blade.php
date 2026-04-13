@@ -1,7 +1,7 @@
 <x-layouts::app :title="$otherUser->name">
     <div class="flex h-full w-full flex-1 flex-col gap-8 rounded-xl">
         <div class="flex items-center gap-3">
-            <flux:button icon="arrow-left" :href="route('contacts.index')" wire:navigate variant="subtle" />
+            <flux:button icon="arrow-left" :href="route('contacts.index')" wire:navigate variant="subtle" aria-label="{{ __('Back to contacts') }}" />
             <flux:heading size="xl">{{ $otherUser->name }}</flux:heading>
         </div>
 
@@ -9,7 +9,7 @@
             <flux:callout>{{ session('status') }}</flux:callout>
         @endif
 
-        <div class="flex items-center gap-4 rounded-lg border border-zinc-200 p-6 dark:border-zinc-700">
+        <div class="flex items-center gap-4 rounded-lg border border-zinc-200 p-6 dark:border-zinc-700" role="region" aria-label="{{ __('Contact details for :name', ['name' => $otherUser->name]) }}">
             <flux:avatar size="lg" :name="$otherUser->name" />
             <div>
                 <flux:heading size="lg">{{ $otherUser->name }}</flux:heading>
@@ -19,7 +19,7 @@
         </div>
 
         @if ($contact->status === 'accepted')
-            <div class="flex flex-wrap items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3" role="group" aria-label="{{ __('Contact actions') }}">
                 <flux:button variant="filled" icon="chat-bubble-left-right" :href="$conversation ? route('conversations.show', $conversation) : route('conversations.index')" wire:navigate>
                     {{ __('Message') }}
                 </flux:button>
@@ -51,7 +51,7 @@
                     <form method="POST" action="{{ route('blocks.store') }}">
                         @csrf
                         <input type="hidden" name="user_id" value="{{ $otherUser->id }}">
-                        <flux:button type="submit" variant="filled">{{ __('Block') }}</flux:button>
+                        <flux:button type="submit" variant="filled" aria-label="{{ __('Confirm block :name', ['name' => $otherUser->name]) }}">{{ __('Block') }}</flux:button>
                     </form>
                 </div>
             </flux:modal>
