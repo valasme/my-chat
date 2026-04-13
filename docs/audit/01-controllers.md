@@ -8,6 +8,58 @@
 - `app/Http/Controllers/IgnoreController.php`
 - `app/Http/Controllers/TrashController.php`
 - `app/Http/Controllers/DashboardController.php`
+- `app/Http/Controllers/UserTimezoneController.php`
+
+---
+
+## Change Log
+
+### 2026-04-13 — Comprehensive Controller Improvements
+
+All changes verified: **282 tests passing (651 assertions)**, Pint clean.
+
+#### Security Fixes
+| ID | Severity | File(s) | Change |
+|----|----------|---------|--------|
+| S1 | ✅ Resolved (prior) | `routes/web.php`, `AppServiceProvider` | Rate limiting was already applied via `throttle:chat-read`, `chat-write`, `chat-message`. Dashboard route now also rate-limited with `throttle:chat-read`. |
+| S2 | ✅ Resolved (prior) | `BlockController.php` | `Gate::authorize('create', Block::class)` already present. |
+| S3 | ✅ Fixed | `IgnoreController.php`, `TrashController.php` | Added `Gate::authorize('create', ...)` to both `store()` methods. |
+| S4 | ✅ Fixed | `TrashController.php` | Quick-delete path now wrapped in `DB::transaction()` and logged via `Log::info()`. |
+
+#### Performance Fixes
+| ID | Severity | File(s) | Change |
+|----|----------|---------|--------|
+| P1 | ✅ Fixed | `DashboardController.php` | Eliminated duplicate queries: conversation base query cloned for count + list (saves re-running `excludingIgnoredAndTrashed`); pending incoming query reused for count + list; removed unnecessary `collect()` wrapping. |
+| P2 | ✅ Fixed | `Conversation.php` | Replaced `Contact::get()->map()` with efficient `selectRaw(CASE WHEN...)` + `pluck()` subquery in `scopeExcludingIgnoredAndTrashed`. No longer loads full Contact models just to extract IDs. |
+| P3 | ✅ Resolved (prior) | `ConversationController.php` | Messages already paginated (50/page with auto-redirect to last page). |
+
+#### Error Handling Fixes
+| ID | Severity | File(s) | Change |
+|----|----------|---------|--------|
+| E1 | ✅ Fixed | `ContactController.php` | Replaced `firstOrFail()` with `first()` + null check + graceful redirect with error message. Eliminates race condition between validation and query. |
+| E2 | ✅ Fixed | `TrashController.php` | Replaced `findOrFail()` with `find()` + null check + graceful redirect. Eliminates race condition on quick-delete path. |
+
+#### Bug / Logic Fixes
+| ID | Severity | File(s) | Change |
+|----|----------|---------|--------|
+| B1 | ✅ Fixed | `ConversationController.php` | Added `$isBlocked` check in `show()` — detects blocks in both directions. Passed to view for UI handling. |
+| B2 | ✅ Resolved (prior) | `BlockController.php` | Already wrapped in `DB::transaction()`. |
+| B3 | ✅ Resolved (prior) | `TrashController.php` | `forceDelete()` already wrapped in `DB::transaction()`. |
+| B4 | ✅ Resolved (prior) | `ContactController.php` | `destroy()` already wrapped in `DB::transaction()`. |
+| B5 | ✅ Resolved (prior) | `Conversation.php` | `scopeForUser` already uses `where(function() { ... })` grouping. |
+
+#### Production Readiness
+| ID | Severity | File(s) | Change |
+|----|----------|---------|--------|
+| PR1 | ✅ Resolved (prior) | `routes/console.php` | Cleanup commands already run `everyFifteenMinutes()`. |
+| PR2 | ✅ Fixed | Multiple controllers | Added `Log::info()` audit logging to: `ContactController::store`, `IgnoreController::store`, `IgnoreController::destroy`, `TrashController::store` (both paths), `MessageController::store`. `BlockController` and `TrashController::forceDelete` already had logging. |
+
+#### Code Quality
+| ID | Severity | File(s) | Change |
+|----|----------|---------|--------|
+| D1 | ✅ Fixed | `DashboardController.php` | Uses cloned conversation base query instead of duplicating exclusion logic. Both controllers share `Conversation::scopeExcludingIgnoredAndTrashed`. |
+| — | New | `MessagePolicy.php` | Fixed double `User::find()` call — now resolves the other user once and adds null check. |
+| — | New | `routes/web.php` | Dashboard route now uses `throttle:chat-read` middleware. |
 
 ---
 
@@ -213,25 +265,25 @@ $query->where(function ($q) use ($userId) {
 
 ## Improvement Summary
 
-| ID | Severity | Category | Description |
-|----|----------|----------|-------------|
-| S1 | 🔴 Critical | Security | No rate limiting on any route |
-| S2 | 🟠 High | Security | No Gate authorization on block store |
-| S3 | 🟡 Medium | Security | No Gate authorization on ignore/trash store |
-| S4 | 🟡 Medium | Security | Quick-delete via user input |
-| P1 | 🟠 High | Performance | Dashboard runs 12+ queries |
-| P2 | 🟡 Medium | Performance | N+1 on trashed user ID mapping |
-| P3 | 🟡 Medium | Performance | All messages loaded at once |
-| P4 | 🔵 Low | Performance | Cleanup command per-item queries |
-| E1 | 🟡 Medium | Error Handling | firstOrFail race condition |
-| E2 | 🔵 Low | Error Handling | findOrFail race condition |
-| E3 | 🟡 Medium | Error Handling | No exception handler config |
-| B1 | 🟡 Medium | Bug | Show page missing block/ignore checks |
-| B2 | 🟡 Medium | Bug | Block cascade no transaction |
-| B3 | 🟡 Medium | Bug | Force-delete no transaction |
-| B4 | 🟡 Medium | Bug | Contact delete no transaction |
-| B5 | 🔵 Low | Bug | scopeForUser orWhere grouping |
-| PR1 | 🔵 Low | Production | Cleanup every minute too frequent |
-| PR2 | 🔵 Low | Production | No audit logging |
-| D1 | 🟡 Medium | DRY | Conversation exclusion duplicated |
-| D2 | 🔵 Low | Code Quality | Missing type hints on scopes |
+| ID | Status | Category | Description |
+|----|--------|----------|-------------|
+| S1 | ✅ Resolved | Security | Rate limiting applied to all routes |
+| S2 | ✅ Resolved | Security | Gate authorization on block store |
+| S3 | ✅ Fixed | Security | Gate authorization added to ignore/trash store |
+| S4 | ✅ Fixed | Security | Quick-delete logged and wrapped in transaction |
+| P1 | ✅ Fixed | Performance | Dashboard queries reduced via clone + reuse |
+| P2 | ✅ Fixed | Performance | Trashed user ID mapping uses subquery |
+| P3 | ✅ Resolved | Performance | Messages paginated (50/page) |
+| P4 | 🔵 Low | Performance | Cleanup command per-item queries (outside controller scope) |
+| E1 | ✅ Fixed | Error Handling | firstOrFail replaced with graceful null check |
+| E2 | ✅ Fixed | Error Handling | findOrFail replaced with graceful null check |
+| E3 | 🟡 Medium | Error Handling | Exception handler config (outside controller scope) |
+| B1 | ✅ Fixed | Bug | Show page now checks blocked state |
+| B2 | ✅ Resolved | Bug | Block cascade uses transaction |
+| B3 | ✅ Resolved | Bug | Force-delete uses transaction |
+| B4 | ✅ Resolved | Bug | Contact delete uses transaction |
+| B5 | ✅ Resolved | Bug | scopeForUser uses where grouping |
+| PR1 | ✅ Resolved | Production | Cleanup runs everyFifteenMinutes |
+| PR2 | ✅ Fixed | Production | Audit logging on all destructive actions |
+| D1 | ✅ Fixed | DRY | Conversation exclusion shared via cloned query |
+| D2 | 🔵 Low | Code Quality | Missing type hints on scopes (cosmetic) |

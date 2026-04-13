@@ -20,7 +20,13 @@ class MessagePolicy
             ? $conversation->user_two_id
             : $conversation->user_one_id;
 
-        if ($user->hasBlockedUser(User::find($otherUserId)) || $user->isBlockedByUser(User::find($otherUserId))) {
+        $otherUser = User::find($otherUserId);
+
+        if (! $otherUser) {
+            return false;
+        }
+
+        if ($user->hasBlockedUser($otherUser) || $user->isBlockedByUser($otherUser)) {
             return false;
         }
 

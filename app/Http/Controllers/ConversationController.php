@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Block;
 use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\Ignore;
@@ -71,9 +72,15 @@ class ConversationController extends Controller
             ->active()
             ->first();
 
+        $isBlocked = Block::where(function ($q) use ($userId, $otherUserId) {
+            $q->where('blocker_id', $userId)->where('blocked_id', $otherUserId);
+        })->orWhere(function ($q) use ($userId, $otherUserId) {
+            $q->where('blocker_id', $otherUserId)->where('blocked_id', $userId);
+        })->exists();
+
         $contact = Contact::between($userId, $otherUserId)->accepted()->first();
         $isTrashed = $contact && Trash::where('user_id', $userId)->where('contact_id', $contact->id)->exists();
 
-        return view('conversations.show', compact('conversation', 'messages', 'otherUser', 'isIgnored', 'isTrashed'));
+        return view('conversations.show', compact('conversation', 'messages', 'otherUser', 'isIgnored', 'isBlocked', 'isTrashed'));
     }
 }

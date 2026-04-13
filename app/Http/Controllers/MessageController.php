@@ -8,6 +8,7 @@ use App\Models\Message;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 
 class MessageController extends Controller
 {
@@ -15,10 +16,16 @@ class MessageController extends Controller
     {
         Gate::authorize('create', [Message::class, $conversation]);
 
-        Message::create([
+        $message = Message::create([
             'conversation_id' => $conversation->id,
             'sender_id' => Auth::id(),
             'body' => $request->validated('body'),
+        ]);
+
+        Log::info('Message sent', [
+            'message_id' => $message->id,
+            'conversation_id' => $conversation->id,
+            'sender_id' => Auth::id(),
         ]);
 
         return redirect()->route('conversations.show', $conversation);

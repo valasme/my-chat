@@ -54,18 +54,20 @@ class Conversation extends Model
     /**
      * Exclude conversations with ignored or trashed users for the given user.
      *
-     * @param Builder<self> $query
+     * @param  Builder<self>  $query
      */
     public function scopeExcludingIgnoredAndTrashed(Builder $query, int $userId): void
     {
-        $excludeUserIds = Ignore::forIgnorer($userId)->active()->pluck('ignored_id')
-            ->merge(
-                Contact::whereIn('id', Trash::forUser($userId)->pluck('contact_id'))
-                    ->get()
-                    ->map(fn ($c) => $c->user_id === $userId ? $c->contact_user_id : $c->user_id)
+        $ignoredUserIds = Ignore::forIgnorer($userId)->active()->pluck('ignored_id');
+
+        $trashedUserIds = Contact::whereIn('id', Trash::forUser($userId)->pluck('contact_id'))
+            ->selectRaw(
+                'CASE WHEN user_id = ? THEN contact_user_id ELSE user_id END as other_user_id',
+                [$userId]
             )
-            ->unique()
-            ->values();
+            ->pluck('other_user_id');
+
+        $excludeUserIds = $ignoredUserIds->merge($trashedUserIds)->unique()->values();
 
         $query->when($excludeUserIds->isNotEmpty(), function (Builder $q) use ($userId, $excludeUserIds) {
             $q->where(function (Builder $inner) use ($userId, $excludeUserIds) {

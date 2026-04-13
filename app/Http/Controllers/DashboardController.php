@@ -17,27 +17,20 @@ class DashboardController extends Controller
     {
         $userId = Auth::id();
 
-        // Stats
         $contactsCount = Contact::forUser($userId)->accepted()->count();
         $blocksCount = Block::forBlocker($userId)->count();
         $ignoresCount = Ignore::forIgnorer($userId)->active()->count();
 
-        $conversationsCount = Conversation::forUser($userId)
-            ->excludingIgnoredAndTrashed($userId)
-            ->count();
+        $pendingIncoming = Contact::incoming($userId)->pending();
+        $incomingTotal = $pendingIncoming->count();
+        $incomingRequests = $pendingIncoming->with('user')->latest()->limit(5)->get();
 
-        // Incoming pending requests (limit 5)
-        $incomingRequests = Contact::incoming($userId)
-            ->pending()
-            ->with('user')
-            ->latest()
-            ->limit(5)
-            ->get();
-        $incomingTotal = Contact::incoming($userId)->pending()->count();
+        $conversationBase = Conversation::forUser($userId)
+            ->excludingIgnoredAndTrashed($userId);
 
-        // Recent conversations (limit 5)
-        $recentConversations = Conversation::forUser($userId)
-            ->excludingIgnoredAndTrashed($userId)
+        $conversationsCount = (clone $conversationBase)->count();
+
+        $recentConversations = (clone $conversationBase)
             ->with(['userOne', 'userTwo', 'messages' => fn ($q) => $q->latest()->limit(1)])
             ->orderByDesc(
                 Message::select('created_at')
@@ -48,7 +41,6 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
-        // Expiring soon: ignores within 24h + trash within 7d
         $expiringIgnores = Ignore::forIgnorer($userId)
             ->active()
             ->where('expires_at', '<=', now()->addDay())
@@ -72,7 +64,7 @@ class DashboardController extends Controller
                 'link' => route('trashes.index'),
             ]);
 
-        $expiringSoon = collect($expiringIgnores)->merge($expiringTrashes)
+        $expiringSoon = $expiringIgnores->toBase()->merge($expiringTrashes)
             ->sortBy('expires_at')
             ->take(5);
 

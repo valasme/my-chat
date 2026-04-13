@@ -45,21 +45,36 @@ class TrashController extends Controller
 
     public function store(StoreTrashRequest $request): RedirectResponse
     {
+        Gate::authorize('create', Trash::class);
+
         $isQuickDelete = (bool) $request->input('is_quick_delete', false);
 
         if ($isQuickDelete) {
-            $contact = Contact::findOrFail($request->validated('contact_id'));
-            $conversation = Conversation::betweenUsers($contact->user_id, $contact->contact_user_id)->first();
+            $contact = Contact::find($request->validated('contact_id'));
 
-            if ($conversation) {
-                $conversation->messages()->delete();
+            if (! $contact) {
+                return redirect()->route('contacts.index')
+                    ->withErrors(['contact_id' => __('Contact not found.')]);
             }
 
-            Trash::create([
+            DB::transaction(function () use ($contact) {
+                $conversation = Conversation::betweenUsers($contact->user_id, $contact->contact_user_id)->first();
+
+                if ($conversation) {
+                    $conversation->messages()->delete();
+                }
+
+                Trash::create([
+                    'user_id' => Auth::id(),
+                    'contact_id' => $contact->id,
+                    'expires_at' => now()->addDays(7),
+                    'is_quick_delete' => true,
+                ]);
+            });
+
+            Log::info('Contact quick-deleted', [
                 'user_id' => Auth::id(),
                 'contact_id' => $contact->id,
-                'expires_at' => now()->addDays(7),
-                'is_quick_delete' => true,
             ]);
 
             return redirect()->route('contacts.index')
@@ -76,6 +91,12 @@ class TrashController extends Controller
         };
 
         Trash::create([
+            'user_id' => Auth::id(),
+            'contact_id' => $request->validated('contact_id'),
+            'expires_at' => $expiresAt,
+        ]);
+
+        Log::info('Contact trashed', [
             'user_id' => Auth::id(),
             'contact_id' => $request->validated('contact_id'),
             'expires_at' => $expiresAt,

@@ -71,12 +71,22 @@ class ContactController extends Controller
      */
     public function store(StoreContactRequest $request): RedirectResponse
     {
-        $targetUser = User::where('email', $request->validated('email'))->firstOrFail();
+        $targetUser = User::where('email', $request->validated('email'))->first();
+
+        if (! $targetUser) {
+            return redirect()->route('contacts.create')
+                ->withErrors(['email' => __('User not found.')]);
+        }
 
         Contact::create([
             'user_id' => Auth::id(),
             'contact_user_id' => $targetUser->id,
             'status' => 'pending',
+        ]);
+
+        Log::info('Contact request sent', [
+            'user_id' => Auth::id(),
+            'target_user_id' => $targetUser->id,
         ]);
 
         return redirect()->route('contacts.index')

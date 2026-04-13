@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Block;
 use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\Message;

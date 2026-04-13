@@ -17,7 +17,9 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('throttle:6,1')
         ->name('user.timezone');
 
-    Route::get('dashboard', DashboardController::class)->name('dashboard');
+    Route::get('dashboard', DashboardController::class)
+        ->middleware('throttle:chat-read')
+        ->name('dashboard');
 
     Route::middleware('throttle:chat-read')->group(function () {
         Route::resource('contacts', ContactController::class)->only(['index', 'show', 'create']);

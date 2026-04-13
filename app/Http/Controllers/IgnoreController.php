@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class IgnoreController extends Controller
@@ -34,6 +35,8 @@ class IgnoreController extends Controller
 
     public function store(StoreIgnoreRequest $request): RedirectResponse
     {
+        Gate::authorize('create', Ignore::class);
+
         $duration = $request->validated('duration');
         $expiresAt = match ($duration) {
             '1h' => now()->addHour(),
@@ -50,6 +53,12 @@ class IgnoreController extends Controller
             'expires_at' => $expiresAt,
         ]);
 
+        Log::info('User ignored', [
+            'ignorer_id' => Auth::id(),
+            'ignored_id' => $request->validated('user_id'),
+            'expires_at' => $expiresAt,
+        ]);
+
         return redirect()->route('contacts.index')
             ->with('status', __('User ignored.'));
     }
@@ -57,6 +66,11 @@ class IgnoreController extends Controller
     public function destroy(Ignore $ignore): RedirectResponse
     {
         Gate::authorize('delete', $ignore);
+
+        Log::info('Ignore cancelled', [
+            'ignorer_id' => $ignore->ignorer_id,
+            'ignored_id' => $ignore->ignored_id,
+        ]);
 
         $ignore->delete();
 
