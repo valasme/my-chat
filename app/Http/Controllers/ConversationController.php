@@ -52,16 +52,6 @@ class ConversationController extends Controller
 
         $conversation->load(['userOne', 'userTwo']);
 
-        $messagesQuery = $conversation->messages()->with('sender')->oldest();
-
-        if (! $request->has('page')) {
-            $total = $messagesQuery->count();
-            $lastPage = max(1, (int) ceil($total / 50));
-            $messages = $messagesQuery->paginate(50, ['*'], 'page', $lastPage);
-        } else {
-            $messages = $messagesQuery->paginate(50);
-        }
-
         $otherUser = $conversation->getOtherUser(Auth::id());
 
         $userId = Auth::id();
@@ -81,6 +71,6 @@ class ConversationController extends Controller
         $contact = Contact::between($userId, $otherUserId)->accepted()->first();
         $isTrashed = $contact && Trash::where('user_id', $userId)->where('contact_id', $contact->id)->exists();
 
-        return view('conversations.show', compact('conversation', 'messages', 'otherUser', 'isIgnored', 'isBlocked', 'isTrashed'));
+        return view('conversations.show', compact('conversation', 'otherUser', 'isIgnored', 'isBlocked', 'isTrashed'));
     }
 }

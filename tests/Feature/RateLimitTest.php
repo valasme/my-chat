@@ -30,15 +30,4 @@ class RateLimitTest extends TestCase
 
         $response->assertHeader('X-RateLimit-Limit', 30);
     }
-
-    public function test_message_routes_have_rate_limiting(): void
-    {
-        $user = User::factory()->create();
-
-        $response = $this->actingAs($user)->post(route('messages.store', ['conversation' => 999]), [
-            'body' => 'test',
-        ]);
-
-        $response->assertHeader('X-RateLimit-Limit', 60);
-    }
 }

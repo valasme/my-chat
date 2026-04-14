@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Events\MessageSent;
+use App\Livewire\ConversationShow;
 use App\Models\Block;
 use App\Models\Contact;
 use App\Models\Conversation;
@@ -10,11 +12,28 @@ use App\Models\Message;
 use App\Models\Trash;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class IntegrationTest extends TestCase
 {
     use RefreshDatabase;
+
+    private function sendMessage(User $sender, User $recipient, Conversation $conversation, string $body): void
+    {
+        Livewire::actingAs($sender)
+            ->test(ConversationShow::class, [
+                'conversation' => $conversation,
+                'otherUser' => $recipient,
+                'isIgnored' => null,
+                'isTrashed' => false,
+                'isBlocked' => false,
+            ])
+            ->set('body', $body)
+            ->call('sendMessage')
+            ->assertHasNoErrors();
+    }
 
     public function test_block_while_trashed_cleans_everything(): void
     {
@@ -88,11 +107,10 @@ class IntegrationTest extends TestCase
         $this->assertNotNull($conversation);
 
         // Send messages
-        $this->actingAs($userA)
-            ->post(route('messages.store', $conversation), ['body' => 'Hi!']);
+        Event::fake([MessageSent::class]);
 
-        $this->actingAs($userB)
-            ->post(route('messages.store', $conversation), ['body' => 'Hey!']);
+        $this->sendMessage($userA, $userB, $conversation, 'Hi!');
+        $this->sendMessage($userB, $userA, $conversation, 'Hey!');
 
         $this->assertDatabaseCount('messages', 2);
 
@@ -239,8 +257,9 @@ class IntegrationTest extends TestCase
         $this->assertDatabaseCount('trashes', 0);
 
         // Send a message
-        $this->actingAs($userA)
-            ->post(route('messages.store', $conversation), ['body' => 'Hello again!']);
+        Event::fake([MessageSent::class]);
+
+        $this->sendMessage($userA, $userB, $conversation, 'Hello again!');
 
         $this->assertDatabaseCount('messages', 1);
 
@@ -285,8 +304,9 @@ class IntegrationTest extends TestCase
         $this->assertDatabaseCount('ignores', 0);
 
         // Send message
-        $this->actingAs($userA)
-            ->post(route('messages.store', $conversation), ['body' => 'Hi after unignore!']);
+        Event::fake([MessageSent::class]);
+
+        $this->sendMessage($userA, $userB, $conversation, 'Hi after unignore!');
 
         $this->assertDatabaseCount('messages', 1);
 
@@ -336,17 +356,12 @@ class IntegrationTest extends TestCase
         ]);
 
         // Exchange messages back and forth
-        $this->actingAs($userA)
-            ->post(route('messages.store', $conversation), ['body' => 'Hey B!']);
+        Event::fake([MessageSent::class]);
 
-        $this->actingAs($userB)
-            ->post(route('messages.store', $conversation), ['body' => 'Hey A!']);
-
-        $this->actingAs($userA)
-            ->post(route('messages.store', $conversation), ['body' => 'How are you?']);
-
-        $this->actingAs($userB)
-            ->post(route('messages.store', $conversation), ['body' => 'Great, thanks!']);
+        $this->sendMessage($userA, $userB, $conversation, 'Hey B!');
+        $this->sendMessage($userB, $userA, $conversation, 'Hey A!');
+        $this->sendMessage($userA, $userB, $conversation, 'How are you?');
+        $this->sendMessage($userB, $userA, $conversation, 'Great, thanks!');
 
         $this->assertDatabaseCount('messages', 4);
 

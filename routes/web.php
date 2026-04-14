@@ -5,7 +5,6 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\IgnoreController;
-use App\Http\Controllers\MessageController;
 use App\Http\Controllers\TrashController;
 use App\Http\Controllers\UserTimezoneController;
 use Illuminate\Support\Facades\Route;
@@ -37,9 +36,6 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('trashes/{trash}/force', [TrashController::class, 'forceDelete'])->name('trashes.force-delete');
     });
 
-    Route::post('conversations/{conversation}/messages', [MessageController::class, 'store'])
-        ->middleware('throttle:chat-message')
-        ->name('messages.store');
 });
 
 require __DIR__.'/settings.php';

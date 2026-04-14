@@ -7,7 +7,7 @@ trait MessageValidationRules
     public function messageRules(): array
     {
         return [
-            'body' => ['required', 'string', 'max:5000'],
+            'body' => ['required', 'string', 'filled', 'max:5000'],
         ];
     }
 }
