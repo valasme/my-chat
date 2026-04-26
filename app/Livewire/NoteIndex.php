@@ -4,9 +4,7 @@ namespace App\Livewire;
 
 use App\Models\Note;
 use Illuminate\Contracts\View\View;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
-use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -42,8 +40,7 @@ class NoteIndex extends Component
         $this->resetPage();
     }
 
-    #[Computed]
-    public function notes(): LengthAwarePaginator
+    public function render(): View
     {
         $query = $this->view === 'trashed'
             ? Note::onlyTrashed()->forUser(Auth::id())
@@ -67,13 +64,8 @@ class NoteIndex extends Component
             $query->latest();
         }
 
-        return $query->with(['contact.user', 'contact.contactUser'])->paginate(15);
-    }
-
-    public function render(): View
-    {
         return view('livewire.note-index', [
-            'notes' => $this->notes,
+            'notes' => $query->with(['contact.user', 'contact.contactUser'])->paginate(15),
         ]);
     }
 }

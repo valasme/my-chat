@@ -17,7 +17,7 @@ trait NoteValidationRules
         return [
             'title' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string', 'max:10000'],
-            'tags' => ['nullable', 'array'],
+            'tags' => ['nullable', 'array', 'max:20'],
             'tags.*' => ['string', 'max:50'],
             'contact_id' => ['nullable', 'integer', 'exists:contacts,id'],
         ];
