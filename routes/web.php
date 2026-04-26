@@ -5,6 +5,7 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\IgnoreController;
+use App\Http\Controllers\NoteController;
 use App\Http\Controllers\TrashController;
 use App\Http\Controllers\UserTimezoneController;
 use Illuminate\Support\Facades\Route;
@@ -26,6 +27,7 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('blocks', BlockController::class)->only(['index']);
         Route::resource('ignores', IgnoreController::class)->only(['index']);
         Route::resource('trashes', TrashController::class)->only(['index']);
+        Route::resource('notes', NoteController::class)->only(['index', 'create', 'show', 'edit']);
     });
 
     Route::middleware('throttle:chat-write')->group(function () {
@@ -34,6 +36,9 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('ignores', IgnoreController::class)->only(['store', 'destroy']);
         Route::resource('trashes', TrashController::class)->only(['store', 'destroy']);
         Route::delete('trashes/{trash}/force', [TrashController::class, 'forceDelete'])->name('trashes.force-delete');
+        Route::resource('notes', NoteController::class)->only(['store', 'update', 'destroy']);
+        Route::post('notes/{note}/restore', [NoteController::class, 'restore'])->whereNumber('note')->name('notes.restore');
+        Route::delete('notes/{note}/force-delete', [NoteController::class, 'forceDelete'])->whereNumber('note')->name('notes.force-delete');
     });
 
 });

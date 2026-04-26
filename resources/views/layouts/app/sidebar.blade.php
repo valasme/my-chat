@@ -24,6 +24,9 @@
                     <flux:sidebar.item icon="chat-bubble-left-right" :href="route('conversations.index')" :current="request()->routeIs('conversations.*')" wire:navigate>
                         {{ __('Messages') }}
                     </flux:sidebar.item>
+                    <flux:sidebar.item icon="pencil-square" :href="route('notes.index')" :current="request()->routeIs('notes.*')" wire:navigate>
+                        {{ __('Notes') }}
+                    </flux:sidebar.item>
                     <flux:sidebar.item icon="trash" :href="route('trashes.index')" :current="request()->routeIs('trashes.*')" wire:navigate>
                         {{ __('Trash') }}
                     </flux:sidebar.item>
