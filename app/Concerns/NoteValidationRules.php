@@ -3,14 +3,14 @@
 namespace App\Concerns;
 
 use App\Models\Contact;
-use Illuminate\Contracts\Validation\Rule;
+use Illuminate\Contracts\Validation\ValidationRule;
 
 trait NoteValidationRules
 {
     /**
      * Get the validation rules for creating/updating a note.
      *
-     * @return array<string, array<int, Rule|string>>
+     * @return array<string, array<int, ValidationRule|string>>
      */
     protected function noteRules(): array
     {
@@ -48,7 +48,7 @@ trait NoteValidationRules
                 if ($this->filled('contact_id')) {
                     $contact = Contact::find($this->input('contact_id'));
 
-                    if (! $contact || ! $contact->involvesUser($this->user()->id) || $contact->status !== 'accepted') {
+                    if (! $contact || ! $contact->involvesUser($this->user()?->id) || $contact->status !== 'accepted') {
                         $validator->errors()->add('contact_id', __('Invalid contact.'));
                     }
                 }
