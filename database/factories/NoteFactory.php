@@ -11,6 +11,11 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class NoteFactory extends Factory
 {
+    /**
+     * Define the model's default state.
+     *
+     * @return array<string, mixed>
+     */
     public function definition(): array
     {
         return [
@@ -25,6 +30,9 @@ class NoteFactory extends Factory
         ];
     }
 
+    /**
+     * Indicate that the note is not linked to a contact (default state made explicit for readability).
+     */
     public function personal(): static
     {
         return $this->state(fn (array $attributes) => [

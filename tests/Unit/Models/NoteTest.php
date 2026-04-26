@@ -12,6 +12,7 @@ class NoteTest extends TestCase
 {
     use RefreshDatabase;
 
+    // ── Scopes ──
     public function test_scope_for_user_returns_only_notes_belonging_to_user(): void
     {
         $user = User::factory()->create();
@@ -67,6 +68,7 @@ class NoteTest extends TestCase
         $this->assertTrue($results->first()->is($taggedNote));
     }
 
+    // ── Relationships ──
     public function test_user_relationship_returns_correct_user(): void
     {
         $user = User::factory()->create();
@@ -91,6 +93,7 @@ class NoteTest extends TestCase
         $this->assertTrue($note->contact->is($contact));
     }
 
+    // ── Casting ──
     public function test_tags_are_cast_to_array(): void
     {
         $note = Note::factory()->create(['tags' => ['work', 'important']]);
@@ -100,6 +103,7 @@ class NoteTest extends TestCase
         $this->assertContains('important', $note->tags);
     }
 
+    // ── Soft Deletes ──
     public function test_scope_for_user_excludes_soft_deleted_notes_by_default(): void
     {
         $user = User::factory()->create();
@@ -109,5 +113,14 @@ class NoteTest extends TestCase
         $results = Note::forUser($user->id)->get();
 
         $this->assertCount(1, $results);
+    }
+
+    public function test_trashed_notes_are_retrievable_with_with_trashed(): void
+    {
+        $user = User::factory()->create();
+        Note::factory()->trashed()->create(['user_id' => $user->id]);
+
+        $this->assertCount(0, Note::forUser($user->id)->get());
+        $this->assertCount(1, Note::withTrashed()->forUser($user->id)->get());
     }
 }
