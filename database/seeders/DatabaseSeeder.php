@@ -26,6 +26,7 @@ class DatabaseSeeder extends Seeder
             BlockSeeder::class,
             IgnoreSeeder::class,
             TrashSeeder::class,
+            NoteSeeder::class,
         ]);
     }
 }
