@@ -9,6 +9,7 @@ use App\Models\Ignore;
 use App\Models\Message;
 use App\Models\Trash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -17,20 +18,30 @@ class DashboardController extends Controller
     {
         $userId = Auth::id();
 
-        $contactsCount = Contact::forUser($userId)->accepted()->count();
-        $blocksCount = Block::forBlocker($userId)->count();
-        $ignoresCount = Ignore::forIgnorer($userId)->active()->count();
+        [$contactsCount, $blocksCount, $ignoresCount, $conversationsCount] = Cache::remember(
+            "dashboard:counts:{$userId}",
+            now()->addMinute(),
+            function () use ($userId) {
+                return [
+                    Contact::forUser($userId)->accepted()->count(),
+                    Block::forBlocker($userId)->count(),
+                    Ignore::forIgnorer($userId)->active()->count(),
+                    Conversation::forUser($userId)->excludingIgnoredAndTrashed($userId)->count(),
+                ];
+            }
+        );
 
-        $pendingIncoming = Contact::incoming($userId)->pending();
-        $incomingTotal = $pendingIncoming->count();
-        $incomingRequests = $pendingIncoming->with('user')->latest()->limit(5)->get();
+        $incomingTotal = Contact::incoming($userId)->pending()->count();
 
-        $conversationBase = Conversation::forUser($userId)
-            ->excludingIgnoredAndTrashed($userId);
+        $incomingRequests = Contact::incoming($userId)
+            ->pending()
+            ->with('user')
+            ->latest()
+            ->limit(5)
+            ->get();
 
-        $conversationsCount = (clone $conversationBase)->count();
-
-        $recentConversations = (clone $conversationBase)
+        $recentConversations = Conversation::forUser($userId)
+            ->excludingIgnoredAndTrashed($userId)
             ->with(['userOne', 'userTwo', 'messages' => fn ($q) => $q->latest()->limit(1)])
             ->orderByDesc(
                 Message::select('created_at')

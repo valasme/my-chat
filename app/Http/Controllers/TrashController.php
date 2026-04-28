@@ -47,7 +47,7 @@ class TrashController extends Controller
     {
         Gate::authorize('create', Trash::class);
 
-        $isQuickDelete = (bool) $request->input('is_quick_delete', false);
+        $isQuickDelete = (bool) $request->validated('is_quick_delete', false);
 
         if ($isQuickDelete) {
             $contact = Contact::find($request->validated('contact_id'));
@@ -88,6 +88,7 @@ class TrashController extends Controller
             '30d' => now()->addDays(30),
             '60d' => now()->addDays(60),
             'custom' => $request->validated('expires_at'),
+            default => throw new \InvalidArgumentException("Invalid duration: {$duration}"),
         };
 
         Trash::create([

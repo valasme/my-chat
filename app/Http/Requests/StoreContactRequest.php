@@ -13,6 +13,8 @@ class StoreContactRequest extends FormRequest
 {
     use ContactValidationRules;
 
+    private ?User $resolvedTargetUser = null;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -32,14 +34,21 @@ class StoreContactRequest extends FormRequest
     }
 
     /**
+     * Returns the resolved target user, cached to avoid a second DB lookup in the controller.
+     */
+    public function targetUser(): ?User
+    {
+        return $this->resolvedTargetUser ??= User::where('email', $this->input('email'))->first();
+    }
+
+    /**
      * Configure the validator instance with additional checks.
      */
     public function after(): array
     {
         return [
             function ($validator) {
-                $email = $this->input('email');
-                $targetUser = User::where('email', $email)->first();
+                $targetUser = $this->targetUser();
 
                 if (! $targetUser) {
                     return;

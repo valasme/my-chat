@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Contact extends Model
 {
@@ -28,6 +29,11 @@ class Contact extends Model
     public function contactUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'contact_user_id');
+    }
+
+    public function trashes(): HasMany
+    {
+        return $this->hasMany(Trash::class);
     }
 
     /** @param Builder<self> $query */

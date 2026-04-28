@@ -7,9 +7,21 @@
         "cursor",
         "gemini",
         "junie",
-        "opencode"
+        "opencode",
+        "kiro"
     ],
+    "cloud": true,
+    "guidelines": true,
     "mcp": true,
-    "nightwatch_mcp": false,
-    "sail": false
+    "nightwatch": false,
+    "sail": false,
+    "skills": [
+        "fortify-development",
+        "laravel-best-practices",
+        "fluxui-development",
+        "livewire-development",
+        "echo-development",
+        "tailwindcss-development",
+        "deploying-laravel-cloud"
+    ]
 }

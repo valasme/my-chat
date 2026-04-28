@@ -6,7 +6,6 @@ use App\Http\Requests\StoreContactRequest;
 use App\Http\Requests\UpdateContactRequest;
 use App\Models\Contact;
 use App\Models\Conversation;
-use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -71,12 +70,7 @@ class ContactController extends Controller
      */
     public function store(StoreContactRequest $request): RedirectResponse
     {
-        $targetUser = User::where('email', $request->validated('email'))->first();
-
-        if (! $targetUser) {
-            return redirect()->route('contacts.create')
-                ->withErrors(['email' => __('User not found.')]);
-        }
+        $targetUser = $request->targetUser();
 
         Contact::create([
             'user_id' => Auth::id(),

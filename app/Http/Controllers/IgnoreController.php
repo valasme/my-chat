@@ -45,6 +45,7 @@ class IgnoreController extends Controller
             '3d' => now()->addDays(3),
             '7d' => now()->addWeek(),
             'custom' => $request->validated('expires_at'),
+            default => throw new \InvalidArgumentException("Invalid duration: {$duration}"),
         };
 
         Ignore::create([

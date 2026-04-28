@@ -7,7 +7,6 @@ use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\Ignore;
 use App\Models\Message;
-use App\Models\Trash;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -68,8 +67,12 @@ class ConversationController extends Controller
             $q->where('blocker_id', $otherUserId)->where('blocked_id', $userId);
         })->exists();
 
-        $contact = Contact::between($userId, $otherUserId)->accepted()->first();
-        $isTrashed = $contact && Trash::where('user_id', $userId)->where('contact_id', $contact->id)->exists();
+        $contact = Contact::between($userId, $otherUserId)
+            ->accepted()
+            ->withExists(['trashes as is_trashed' => fn ($q) => $q->where('user_id', $userId)])
+            ->first();
+
+        $isTrashed = (bool) $contact?->is_trashed;
 
         return view('conversations.show', compact('conversation', 'otherUser', 'isIgnored', 'isBlocked', 'isTrashed'));
     }
